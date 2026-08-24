@@ -4,15 +4,17 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
 from aiogram.types import (
-    Message, 
-    ReplyKeyboardMarkup, 
-    KeyboardButton, 
-    InlineKeyboardMarkup, 
-    InlineKeyboardButton, 
+    Message,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
     CallbackQuery
 )
 
 TOKEN = os.environ.get("BOT_TOKEN")
+if not TOKEN:
+    raise RuntimeError("BOT_TOKEN environment variable topilmadi. Render > Environment bo'limida sozlang.")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -154,15 +156,15 @@ async def handle_web(request):
 async def main():
     # Eski to'sqinlik qilayotgan ulanish va webhooklarni o'chirish
     await bot.delete_webhook(drop_pending_updates=True)
-    
+
     app = web.Application()
     app.router.add_get("/", handle_web)
     runner = web.AppRunner(app)
     await runner.setup()
-    
+
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
-    
+
     await asyncio.gather(
         site.start(),
         dp.start_polling(bot)
