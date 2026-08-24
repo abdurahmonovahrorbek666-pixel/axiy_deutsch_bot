@@ -12,7 +12,7 @@ from aiogram.types import (
     CallbackQuery
 )
 
-TOKEN = "8912605806:AAEshu0Br0OVKsT1QXSg43Yy9NBJzOzW2Z8"
+TOKEN = "8912605806:AAF8crz7leDDybHwZ7-pCyAAVW5xtP9-vGI"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
