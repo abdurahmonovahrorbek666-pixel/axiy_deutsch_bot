@@ -1,4 +1,6 @@
 import asyncio
+import os
+from aiohttp import web
 from aiogram import Bot, Dispatcher, html, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
@@ -35,9 +37,26 @@ async def test_handler(message: Message) -> None:
 async def about_handler(message: Message) -> None:
     await message.answer("Ushbu bot Nemis tilini o'rganuvchilar uchun maxsus yaratilgan.")
 
+# Render Timed Out berib o'chib qolmasligi uchun kichik Web Server
+async def handle_ping(request):
+    return web.Response(text="Bot is running!")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.getenv("PORT", 8080))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
 async def main() -> None:
     bot = Bot(token=TOKEN)
-    await dp.start_polling(bot)
+    # Veb server va bot pollingni bir vaqtda ishga tushiramiz
+    await asyncio.gather(
+        start_web_server(),
+        dp.start_polling(bot)
+    )
 
 if name == "__main__":
     asyncio.run(main())
