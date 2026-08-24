@@ -12,7 +12,7 @@ from aiogram.types import (
     CallbackQuery
 )
 
-TOKEN = "8912605806:AAF8crz7leDDybHwZ7-pCyAAVW5xtP9-vGI"
+TOKEN = os.environ.get("BOT_TOKEN", "8912605806:AAEshu0Br0OVKsT1QXSg43Yy9NBJzOzW2Z8")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -63,7 +63,7 @@ TESTS = {
     ]
 }
 
-# Asosiy menyu
+# Menyular
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📚 Lug'at (Wortschatz)"), KeyboardButton(text="📝 Testlar")],
@@ -72,7 +72,6 @@ main_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# Inline tugmalar
 vocab_inline_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="🟢 A1 Daraja", callback_data="vocab_a1"), InlineKeyboardButton(text="🟡 A2 Daraja", callback_data="vocab_a2")],
@@ -129,7 +128,6 @@ async def test_handler(message: Message) -> None:
 async def run_test(callback: CallbackQuery):
     level = callback.data.split("_")[1]
     questions = TESTS.get(level, [])
-    
     if not questions:
         await callback.message.answer("Ushbu daraja uchun testlar topilmadi.")
     else:
@@ -150,11 +148,13 @@ async def about_handler(message: Message) -> None:
         parse_mode="HTML"
     )
 
-# Render uchun Veb-server
 async def handle_web(request):
     return web.Response(text="Bot active")
 
 async def main():
+    # Eski to'sqinlik qilayotgan ulanish va webhooklarni o'chirish
+    await bot.delete_webhook(drop_pending_updates=True)
+    
     app = web.Application()
     app.router.add_get("/", handle_web)
     runner = web.AppRunner(app)
