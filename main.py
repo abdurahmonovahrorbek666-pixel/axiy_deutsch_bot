@@ -9,7 +9,6 @@ TOKEN = "8912605806:AAEshu0Br0OVKsT1QXSg43Yy9NBJzOzW2Z8"
 
 dp = Dispatcher()
 
-# Asosiy menyu tugmalari
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📚 Lug'at (Wortschatz)"), KeyboardButton(text="📝 Testlar")],
@@ -37,7 +36,6 @@ async def test_handler(message: Message) -> None:
 async def about_handler(message: Message) -> None:
     await message.answer("Ushbu bot Nemis tilini o'rganuvchilar uchun maxsus yaratilgan.")
 
-# Render Timed Out berib o'chib qolmasligi uchun kichik Web Server
 async def handle_ping(request):
     return web.Response(text="Bot is running!")
 
@@ -52,11 +50,10 @@ async def start_web_server():
 
 async def main() -> None:
     bot = Bot(token=TOKEN)
-    # Veb server va bot pollingni bir vaqtda ishga tushiramiz
     await asyncio.gather(
         start_web_server(),
         dp.start_polling(bot)
     )
 
-if name == "__main__":
-    asyncio.run(main())
+# Direct execution call (no conditional block)
+asyncio.run(main())
