@@ -1,0 +1,19 @@
+{
+  "a1": [
+    {"word": "der Tag", "meaning": "kun"},
+    {"word": "die Zeit", "meaning": "vaqt"},
+    {"word": "das Haus", "meaning": "uy"}
+  ],
+  "a2": [
+    {"word": "die Erfahrung", "meaning": "tajriba"},
+    {"word": "entscheiden", "meaning": "qaror qilmoq"}
+  ],
+  "b1": [
+    {"word": "die Voraussetzung", "meaning": "talab / shart"},
+    {"word": "beeinflussen", "meaning": "ta'sir o'tkazmoq"}
+  ],
+  "b2": [
+    {"word": "die Anforderung", "meaning": "talab"},
+    {"word": "berücksichtigen", "meaning": "hisobga olmoq"}
+  ]
+}
