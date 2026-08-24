@@ -3,7 +3,9 @@ import os
 import json
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
     Message, 
     ReplyKeyboardMarkup, 
@@ -14,11 +16,18 @@ from aiogram.types import (
 )
 
 TOKEN = os.environ.get("BOT_TOKEN")
+# Admin Telegram ID sini Render Environment Variables'dan oladi
+ADMIN_ID = os.environ.get("ADMIN_ID") 
+
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable topilmadi.")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+# Admin holatini saqlash uchun (FSM)
+class AdminStates(StatesGroup):
+    waiting_for_broadcast_text = State()
 
 # JSON fayllardan ma'lumotlarni o'qish
 def load_data():
@@ -34,7 +43,7 @@ def load_data():
     except Exception:
         tests = {}
         
-    return words, tests
+    return words, TESTS
 
 VOCABULARY, TESTS = load_data()
 
@@ -43,6 +52,15 @@ main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📚 Lug'at (Wortschatz)"), KeyboardButton(text="📝 Testlar")],
         [KeyboardButton(text="ℹ️ Bot haqida")]
+    ],
+    resize_keyboard=True
+)
+
+# Admin klaviaturasi
+admin_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📢 Xabar yuborish (Broadcast)")],
+        [KeyboardButton(text="⬅️ Bosh menyuga qaytish")]
     ],
     resize_keyboard=True
 )
@@ -56,10 +74,40 @@ async def start_handler(message: Message) -> None:
         reply_markup=main_keyboard
     )
 
-# Siz so'ragan DINAMIK LUG'AT BO'LIMI
+# ----------------- ADMIN PANEL BO'LIMI -----------------
+
+@dp.message(Command("admin"))
+async def admin_start(message: Message):
+    # Tekshirish: foydalanuvchi Admin yoki yo'qligini aniqlaydi
+    if str(message.from_user.id) == str(ADMIN_ID):
+        await message.answer(
+            "👨‍💻 <b>Admin paneliga xush kelibsiz!</b>\n\nQuyidagi tugmalardan birini tanlang:",
+            parse_mode="HTML",
+            reply_markup=admin_keyboard
+        )
+    else:
+        await message.answer("⚠️ Sizga admin paneldan foydalanish uchun ruxsat berilmagan.")
+
+@dp.message(F.text == "📢 Xabar yuborish (Broadcast)")
+async def broadcast_prompt(message: Message, state: FSMContext):
+    if str(message.from_user.id) == str(ADMIN_ID):
+        await state.set_state(AdminStates.waiting_for_broadcast_text)
+        await message.answer("Barchaga yubormoqchi bo'lgan xabaringizni matn yoki rasm ko'rinishida yuboring:")
+
+@dp.message(AdminStates.waiting_for_broadcast_text)
+async def send_broadcast(message: Message, state: FSMContext):
+    if str(message.from_user.id) == str(ADMIN_ID):
+        await message.answer("✅ Xabaringiz qabul qilindi va barchaga yuborish uchun tayyorlandi!")
+        await state.clear()
+
+@dp.message(F.text == "⬅️ Bosh menyuga qaytish")
+async def back_to_main_user(message: Message):
+    await message.answer("Bosh menyuga qaytdingiz:", reply_markup=main_keyboard)
+
+# --------------------------------------------------------
+
 @dp.message(F.text == "📚 Lug'at (Wortschatz)")
 async def dictionary_handler(message: Message) -> None:
-    # words.json har safar yangilanganda ma'lumotni qayta o'qiydi
     global VOCABULARY, TESTS
     VOCABULARY, TESTS = load_data()
 
@@ -167,5 +215,5 @@ async def main():
         dp.start_polling(bot)
     )
 
-if name == "__main__":
+if __name__ == "__main__":
     asyncio.run(main())
