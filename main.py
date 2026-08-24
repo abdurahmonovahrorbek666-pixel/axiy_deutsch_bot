@@ -1,13 +1,13 @@
 import asyncio
 import os
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from aiohttp import web
 from aiogram import Bot, Dispatcher, html, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
 TOKEN = "8912605806:AAEshu0Br0OVKsT1QXSg43Yy9NBJzOzW2Z8"
 
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 main_keyboard = ReplyKeyboardMarkup(
@@ -37,24 +37,24 @@ async def test_handler(message: Message) -> None:
 async def about_handler(message: Message) -> None:
     await message.answer("Ushbu bot Nemis tilini o'rganuvchilar uchun maxsus yaratilgan.")
 
-# Render port talab qilgani uchun alohida fonda ishlovchi oddiy HTTP server
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
+async def handle_web(request):
+    return web.Response(text="Bot active")
 
-def run_health_check_server():
+async def main():
+    # Web server yaratish
+    app = web.Application()
+    app.router.add_get("/", handle_web)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
     port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    server.serve_forever()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    
+    # Bir vaqtda ham portni tinglash, ham pollingni ishlatish
+    await asyncio.gather(
+        site.start(),
+        dp.start_polling(bot)
+    )
 
-# HTTP serverni alohida Thread'da yurgazamiz
-threading.Thread(target=run_health_check_server, daemon=True).start()
-
-# Bot pollingni asosiy oqimda ishga tushiramiz
-async def main() -> None:
-    bot = Bot(token=TOKEN)
-    await dp.start_polling(bot)
-
-asyncio.run(main())
+if name == "__main__":
+    asyncio.run(main())
