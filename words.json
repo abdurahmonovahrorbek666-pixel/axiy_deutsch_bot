@@ -74,7 +74,7 @@
       "day_1": [
         {"word": "die Erfahrung", "meaning": "tajriba", "options": ["bilim", "tajriba", "orzu", "maqsad"], "correct": 1},
         {"word": "entscheiden", "meaning": "qaror qilmoq", "options": ["boshlamoq", "o'ylamoq", "qaror qilmoq", "rad etmoq"], "correct": 2},
-        {"word": "die Ausbildung", "meaning": "kasbiy ta'lim", "options": ["kasbiy ta me'mor", "maktab", "kasbiy ta'lim", "universitet"], "correct": 2},
+        {"word": "die Ausbildung", "meaning": "kasbiy ta'lim", "options": ["maktab", "universitet", "kasbiy ta'lim", "kurs"], "correct": 2},
         {"word": "pünktlich", "meaning": "o'z vaqtida", "options": ["kechikib", "o'z vaqtida", "tezda", "sekin"], "correct": 1},
         {"word": "bekommen", "meaning": "olmoq", "options": ["bermoq", "yo'qotmoq", "olmoq", "yubormoq"], "correct": 2},
         {"word": "versuchen", "meaning": "harakat qilmoq", "options": ["harakat qilmoq", "to'xtamoq", "tashlamoq", "boshlamoq"], "correct": 0}
@@ -86,7 +86,7 @@
     "days": {
       "day_1": [
         {"word": "die Voraussetzung", "meaning": "talab / shart", "options": ["natija", "talab / shart", "maqsad", "sabab"], "correct": 1},
-        {"word": "berücksichtigen", "meaning": "hisobga olmoq", "options": ["e'tiborsiz qoldirmoq", " hisobga olmoq", "taqiqlamoq", "yashirmoq"], "correct": 1},
+        {"word": "berücksichtigen", "meaning": "hisobga olmoq", "options": ["e'tiborsiz qoldirmoq", "hisobga olmoq", "taqiqlamoq", "yashirmoq"], "correct": 1},
         {"word": "die Entwicklung", "meaning": "rivojlanish", "options": ["pasayish", "to'xtash", "rivojlanish", "o'zgarish"], "correct": 2},
         {"word": "bevorzugen", "meaning": "afzal ko'rmoq", "options": ["afzal ko'rmoq", "rad etmoq", "tanqid qilmoq", "unutmoq"], "correct": 0},
         {"word": "die Auswirkung", "meaning": "ta'sir", "options": ["sabab", "natija", "ta'sir", "manba"], "correct": 2}
@@ -99,7 +99,7 @@
       "day_1": [
         {"word": "die Beeinträchtigung", "meaning": "salbiy ta'sir / cheklov", "options": ["foyda", "salbiy ta'sir / cheklov", "rivojlanish", "yordam"], "correct": 1},
         {"word": "gewährleisten", "meaning": "ta'minlamoq / kafolatlamoq", "options": ["ta'minlamoq / kafolatlamoq", "buzmoq", "rad etmoq", "shubhalanmoq"], "correct": 0},
-        {"word": "die Nachvollziehbarkeit", "meaning": "tushunarlilik", "options": ["Mavhumlik", "murakkablik", "tushunarlilik", "xatolik"], "correct": 2},
+        {"word": "die Nachvollziehbarkeit", "meaning": "tushunarlilik", "options": ["mavhumlik", "murakkablik", "tushunarlilik", "xatolik"], "correct": 2},
         {"word": "angemessen", "meaning": "mos / muvofiq", "options": ["noma'qul", "mos / muvofiq", "ortiqcha", "xato"], "correct": 1}
       ]
     }
