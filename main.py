@@ -14,7 +14,8 @@ from aiogram.types import (
     InlineKeyboardMarkup, 
     InlineKeyboardButton, 
     CallbackQuery,
-    PollAnswer
+    PollAnswer,
+    FSInputFile
 )
 
 TOKEN = os.environ.get("BOT_TOKEN")
@@ -75,14 +76,12 @@ def load_words_data(level: str, day: int):
         with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
             
-            # Level kalitini moslashtirish (a1, A1, va hokazo)
             level_key = level.lower()
             if level_key not in data:
                 level_key = level.upper()
                 
             level_data = data.get(level_key, {})
             
-            # Ichki 'days' obyekti bor-yo'qligini tekshirish
             if isinstance(level_data, dict) and "days" in level_data:
                 days_data = level_data.get("days", {})
             elif isinstance(level_data, dict):
@@ -107,7 +106,7 @@ class QuizState(StatesGroup):
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📚 Kunlik Lug'at va Test"), KeyboardButton(text="📊 Natijalarim")],
-        [KeyboardButton(text="ℹ️ Bot haqida")]
+        [KeyboardButton(text="📖 Nemis tili Kitoblari (PDF)"), KeyboardButton(text="ℹ️ Bot haqida")]
     ],
     resize_keyboard=True
 )
@@ -117,6 +116,15 @@ def get_levels_keyboard():
         inline_keyboard=[
             [InlineKeyboardButton(text="🟢 A1 Daraja", callback_data="level_a1"), InlineKeyboardButton(text="🟡 A2 Daraja", callback_data="level_a2")],
             [InlineKeyboardButton(text="🟠 B1 Daraja", callback_data="level_b1"), InlineKeyboardButton(text="🔴 B2 Daraja", callback_data="level_b2")]
+        ]
+    )
+
+def get_books_keyboard():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📘 Schritte International A1 (PDF)", callback_data="book_a1")],
+            [InlineKeyboardButton(text="📙 Menschen A2 (PDF)", callback_data="book_a2")],
+            [InlineKeyboardButton(text="📗 Grammatik Aktiv B1-B2 (PDF)", callback_data="book_b1")]
         ]
     )
 
@@ -161,6 +169,40 @@ async def dictionary_handler(message: Message):
         parse_mode="HTML",
         reply_markup=get_levels_keyboard()
     )
+
+# ----------------- KITOBLAR BO'LIMI -----------------
+
+@dp.message(F.text == "📖 Nemis tili Kitoblari (PDF)")
+async def books_handler(message: Message):
+    await message.answer(
+        "📖 <b>Kerakli PDF kitobni tanlang:</b>\n\nYuklab olish uchun pastdagi tugmalardan birini bosing.",
+        parse_mode="HTML",
+        reply_markup=get_books_keyboard()
+    )
+
+@dp.callback_query(F.data.startswith("book_"))
+async def send_pdf_book(callback: CallbackQuery):
+    book_code = callback.data.split("_")[1]
+    
+    # Agar fayllarni loyihangiz papkasiga saqlasangiz:
+    file_map = {
+        "a1": "books/schritte_a1.pdf",
+        "a2": "books/menschen_a2.pdf",
+        "b1": "books/grammatik_b1.pdf"
+    }
+    
+    filepath = file_map.get(book_code)
+
+    if filepath and os.path.exists(filepath):
+        pdf_file = FSInputFile(filepath)
+        await callback.message.answer_document(document=pdf_file, caption="📚 Marhamat, kitobingiz PDF formati.")
+    else:
+        # Fayl loyiha papkasida bo me'mor bo'lmasa, quyidagicha xabar beradi:
+        await callback.answer("⚠️ PDF fayl serverga hali joylanmagan. Papkaga faylni joylang.", show_alert=True)
+        
+    await callback.answer()
+
+# ----------------- TEST HANDLERLARI -----------------
 
 @dp.callback_query(F.data.startswith("level_"))
 async def choose_level(callback: CallbackQuery, state: FSMContext):
@@ -277,11 +319,11 @@ async def send_next_question_by_id(user_id: int, state: FSMContext):
 @dp.message(F.text == "ℹ️ Bot haqida")
 async def about_handler(message: Message) -> None:
     await message.answer(
-        "ℹ️ <b>Deutsch mit Ahrorbek</b> botida har kuni nemischa so'zlarni o'rganasiz va test topshirasiz.",
+        "ℹ️ <b>Deutsch mit Ahrorbek</b> botida har kuni nemischa so'zlarni o'rganasiz, kitoblarni yuklaysiz va test topshirasiz.",
         parse_mode="HTML"
     )
 
-# ----------------- SERVER / WEB SERVICE (Render Port) -----------------
+# ----------------- SERVER / WEB SERVICE -----------------
 
 async def handle_web(request):
     return web.Response(text="Bot runs smoothly!")
