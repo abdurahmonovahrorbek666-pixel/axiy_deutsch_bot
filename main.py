@@ -1,6 +1,7 @@
 import asyncio
 import os
 import json
+import sqlite3
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
@@ -12,11 +13,11 @@ from aiogram.types import (
     KeyboardButton, 
     InlineKeyboardMarkup, 
     InlineKeyboardButton, 
-    CallbackQuery
+    CallbackQuery,
+    PollAnswer
 )
 
 TOKEN = os.environ.get("BOT_TOKEN")
-# Admin Telegram ID sini Render Environment Variables'dan oladi
 ADMIN_ID = os.environ.get("ADMIN_ID") 
 
 if not TOKEN:
@@ -25,39 +26,108 @@ if not TOKEN:
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Admin holatini saqlash uchun (FSM)
+# ----------------- MA'LUMOTLAR BAZASI (SQLite) -----------------
+
+DB_FILE = "user_progress.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_progress (
+            user_id INTEGER PRIMARY KEY,
+            a1_day INTEGER DEFAULT 1,
+            a2_day INTEGER DEFAULT 1,
+            b1_day INTEGER DEFAULT 1,
+            b2_day INTEGER DEFAULT 1
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def get_user_day(user_id: int, level: str = "a1") -> int:
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT {level}_day FROM user_progress WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    if not row:
+        cursor.execute("INSERT INTO user_progress (user_id) VALUES (?)", (user_id,))
+        conn.commit()
+        conn.close()
+        return 1
+    conn.close()
+    return row[0]
+
+def update_user_day(user_id: int, level: str, next_day: int):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute(f"UPDATE user_progress SET {level}_day = ? WHERE user_id = ?", (next_day, user_id))
+    conn.commit()
+    conn.close()
+
+# Bazani ishga tushirish
+init_db()
+
+# ----------------- FSM NIZOMLARI -----------------
+
 class AdminStates(StatesGroup):
     waiting_for_broadcast_text = State()
 
-# JSON fayllardan ma'lumotlarni o'qish
-def load_data():
-    try:
-        with open("words.json", "r", encoding="utf-8") as f:
-            words = json.load(f)
-    except Exception:
-        words = {}
+class QuizState(StatesGroup):
+    level = State()
+    day = State()
+    current_index = State()
+    correct_count = State()
+    questions = State()
 
-    try:
-        with open("tests.json", "r", encoding="utf-8") as f:
-            tests = json.load(f)
-    except Exception:
-        tests = {}
-        
-    return words, tests
+# ----------------- NAMUNAVIY SO'ZLAR MA'LUMOTI (A1 KUNLIK) -----------------
 
-# O'zgaruvchi nomlari bir xil (TESTS) qilib belgilandi
-VOCABULARY, TESTS = load_data()
+# Har bir kunga 30 tadan so'z va testlar biriktiriladi (namuna tariqasida 1-kun to'liq shakllantirilgan)
+A1_WORDS_DATA = {
+    "day_1": [
+        {"word": "hallo", "meaning": "salom", "options": ["salom", "xayr", "rahmat", "ha"], "correct": 0},
+        {"word": "danke", "meaning": "rahmat", "options": ["yo'q", "rahmat", "marhamat", "bugun"], "correct": 1},
+        {"word": "bitte", "meaning": "marhamat", "options": ["xayr", "salom", "marhamat", "kechirasiz"], "correct": 2},
+        {"word": "ja", "meaning": "ha", "options": ["ha", "yo'q", "balki", "albatta"], "correct": 0},
+        {"word": "nein", "meaning": "yo'q", "options": ["ha", "yo'q", "yaxshi", "yomon"], "correct": 1},
+        {"word": "Guten Morgen", "meaning": "Xayrli tong", "options": ["Xayrli kech", "Xayrli tong", "Xayrli kun", "Xayr"], "correct": 1},
+        {"word": "Guten Tag", "meaning": "Xayrli kun", "options": ["Xayrli kun", "Tungi salom", "Ertagacha", "Rahmat"], "correct": 0},
+        {"word": "Guten Abend", "meaning": "Xayrli kech", "options": ["Xayrli tong", "Xayrli kun", "Xayrli kech", "Xayr"], "correct": 2},
+        {"word": "Gute Nacht", "meaning": "Xayrli tun", "options": ["Xayrli tun", "Kun xayrli bo'lsin", "Salom", "Afsus"], "correct": 0},
+        {"word": "Tschüss", "meaning": "Xayr", "options": ["Salom", "Xayr", "Rahmat", "Iltimos"], "correct": 1},
+        {"word": "Auf Wiedersehen", "meaning": "Ko'rishguncha", "options": ["Salom", "Ko'rishguncha", "Xush kelibsiz", "Rahmat"], "correct": 1},
+        {"word": "der Mann", "meaning": "erkak", "options": ["ayol", "erkak", "boshliq", "bola"], "correct": 1},
+        {"word": "die Frau", "meaning": "ayol / xotin", "options": ["qiz", "ayol / xotin", "ona", "opa"], "correct": 1},
+        {"word": "das Kind", "meaning": "bola", "options": ["o'g'il", "qiz", "bola", "talaba"], "correct": 2},
+        {"word": "der Junge", "meaning": "o'g'il bola", "options": ["qiz bola", "o'g'il bola", "aka", "uka"], "correct": 1},
+        {"word": "das Mädchen", "meaning": "qiz bola", "options": ["qiz bola", "onasi", "opa", "singil"], "correct": 0},
+        {"word": "der Freund", "meaning": "do'st (o'g'il)", "options": ["dushman", "do'st", "qo'shni", "talaba"], "correct": 1},
+        {"word": "die Freundin", "meaning": "do'st (qiz)", "options": ["qiz do'st", "singil", "shifokor", "o'qituvchi"], "correct": 0},
+        {"word": "der Name", "meaning": "ism", "options": ["familiya", "ism", "shahar", "yosh"], "correct": 1},
+        {"word": "das Land", "meaning": "mamlakat", "options": ["shahar", "kenglik", "mamlakat", "qishloq"], "correct": 2},
+        {"word": "die Stadt", "meaning": "shahar", "options": ["shahar", "qishloq", "davlat", "uy"], "correct": 0},
+        {"word": "die Sprache", "meaning": "til", "options": ["so'z", "til", "gap", "harf"], "correct": 1},
+        {"word": "lernen", "meaning": "o'rganmoq", "options": ["yozmoq", "o'qimoq", "o'rganmoq", "gapirmoq"], "correct": 2},
+        {"word": "sprechen", "meaning": "gapirmoq", "options": ["eshitmoq", "gapirmoq", "ko'rmoq", "yozmoq"], "correct": 1},
+        {"word": "verstehen", "meaning": "tushunmoq", "options": ["tushunmoq", "so'ramoq", "bilmoq", "o'ylamoq"], "correct": 0},
+        {"word": "schreiben", "meaning": "yozmoq", "options": ["chizmoq", "yozmoq", "o'qimoq", "tinglamoq"], "correct": 1},
+        {"word": "lesen", "meaning": "o'qimoq", "options": ["yozmoq", "o'qimoq", "gapirmoq", "tinglamoq"], "correct": 1},
+        {"word": "hören", "meaning": "eshitmoq", "options": ["eshitmoq", "ko'rmoq", "sezmoq", "aytmoq"], "correct": 0},
+        {"word": "fragen", "meaning": "so'ramoq", "options": ["javob bermoq", "so'ramoq", "aytmoq", "chaqirmoq"], "correct": 1},
+        {"word": "antworten", "meaning": "javob bermoq", "options": ["so'ramoq", "javob bermoq", "yozmoq", "o'qimoq"], "correct": 1}
+    ]
+}
 
-# Asosiy klaviatura
+# ----------------- KLAVIATURALAR -----------------
+
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📚 Lug'at (Wortschatz)"), KeyboardButton(text="📝 Testlar")],
+        [KeyboardButton(text="📚 Kunlik Lug'at va Test"), KeyboardButton(text="📊 Natijalarim")],
         [KeyboardButton(text="ℹ️ Bot haqida")]
     ],
     resize_keyboard=True
 )
 
-# Admin klaviaturasi
 admin_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📢 Xabar yuborish (Broadcast)")],
@@ -66,27 +136,32 @@ admin_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+def get_levels_keyboard():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🟢 A1 Daraja", callback_data="level_a1"), InlineKeyboardButton(text="🟡 A2 Daraja", callback_data="level_a2")],
+            [InlineKeyboardButton(text="🟠 B1 Daraja", callback_data="level_b1"), InlineKeyboardButton(text="🔴 B2 Daraja", callback_data="level_b2")]
+        ]
+    )
+
+# ----------------- BOT HANDLERLARI -----------------
+
 @dp.message(CommandStart())
 async def start_handler(message: Message) -> None:
     user_name = message.from_user.first_name if message.from_user else "Foydalanuvchi"
     await message.answer(
-        f"Hallo, <b>{user_name}</b>!\n\nNemis tili botiga xush kelibsiz! Kerakli bo'limni tanlang:",
+        f"Hallo, <b>{user_name}</b>!\n\nNemis tili kunlik 30 ta so'z va test tizimiga xush kelibsiz!",
         parse_mode="HTML",
         reply_markup=main_keyboard
     )
 
-# ----------------- ADMIN PANEL BO'LIMI -----------------
-
+# Admin panel
 @dp.message(Command("admin"))
 async def admin_start(message: Message):
     if str(message.from_user.id) == str(ADMIN_ID):
-        await message.answer(
-            "👨‍💻 <b>Admin paneliga xush kelibsiz!</b>\n\nQuyidagi tugmalardan birini tanlang:",
-            parse_mode="HTML",
-            reply_markup=admin_keyboard
-        )
+        await message.answer("👨‍💻 <b>Admin paneli:</b>", parse_mode="HTML", reply_markup=admin_keyboard)
     else:
-        await message.answer("⚠️ Sizga admin paneldan foydalanish uchun ruxsat berilmagan.")
+        await message.answer("⚠️ Admin emasasiz.")
 
 @dp.message(F.text == "📢 Xabar yuborish (Broadcast)")
 async def broadcast_prompt(message: Message, state: FSMContext):
@@ -97,106 +172,194 @@ async def broadcast_prompt(message: Message, state: FSMContext):
 @dp.message(AdminStates.waiting_for_broadcast_text)
 async def send_broadcast(message: Message, state: FSMContext):
     if str(message.from_user.id) == str(ADMIN_ID):
-        await message.answer("✅ Xabaringiz qabul qilindi!")
+        await message.answer("✅ Xabar yuborildi!")
         await state.clear()
 
 @dp.message(F.text == "⬅️ Bosh menyuga qaytish")
 async def back_to_main_user(message: Message):
-    await message.answer("Bosh menyuga qaytdingiz:", reply_markup=main_keyboard)
+    await message.answer("Bosh menyu:", reply_markup=main_keyboard)
 
-# ----------------- LUG'AT BO'LIMI (A1, A2, B1, B2) -----------------
+# ----------------- NATIJALAR BO'LIMI -----------------
 
-def get_levels_keyboard():
-    return InlineKeyboardMarkup(
+@dp.message(F.text == "📊 Natijalarim")
+async def show_results(message: Message):
+    user_id = message.from_user.id
+    a1_day = get_user_day(user_id, "a1")
+    a2_day = get_user_day(user_id, "a2")
+    b1_day = get_user_day(user_id, "b1")
+    b2_day = get_user_day(user_id, "b2")
+
+    # 20 kunga bo'linganligi sababli har bir kun 5% ni tashkil etadi
+    a1_pct = min(round(((a1_day - 1) / 20) * 100), 100)
+    a2_pct = min(round(((a2_day - 1) / 20) * 100), 100)
+    b1_pct = min(round(((b1_day - 1) / 20) * 100), 100)
+    b2_pct = min(round(((b2_day - 1) / 20) * 100), 100)
+
+    text = (
+        "📊 <b>Sizning umumiy o'zlashtirish ko'rsatkichingiz:</b>\n\n"
+        f"🟢 <b>A1 Daraja:</b> {a1_pct}% | Ochiq: {a1_day}-kun/20\n"
+        f"🟡 <b>A2 Daraja:</b> {a2_pct}% | Ochiq: {a2_day}-kun/20\n"
+        f"🟠 <b>B1 Daraja:</b> {b1_pct}% | Ochiq: {b1_day}-kun/20\n"
+        f"🔴 <b>B2 Daraja:</b> {b2_pct}% | Ochiq: {b2_day}-kun/20\n\n"
+        "<i>Eslatma: Keyingi kunga o'tish uchun kunlik testdan kamida 80% (24/30) to'plashingiz lozim.</i>"
+    )
+    await message.answer(text, parse_mode="HTML")
+
+# ----------------- KUNLIK LUG'AT VA TEST TIZIMI -----------------
+
+@dp.message(F.text == "📚 Kunlik Lug'at va Test")
+async def dictionary_handler(message: Message):
+    await message.answer(
+        "📚 <b>O'rganmoqchi bo'lgan darajangizni tanlang:</b>",
+        parse_mode="HTML",
+        reply_markup=get_levels_keyboard()
+    )
+
+@dp.callback_query(F.data.startswith("level_"))
+async def choose_level(callback: CallbackQuery, state: FSMContext):
+    level = callback.data.split("_")[1]
+    user_id = callback.from_user.id
+    current_day = get_user_day(user_id, level)
+
+    # Agar A1 bo'lsa va tayyor fayl bo'lsa, mos kunga tegishli ma'lumotni oladi
+    day_key = f"day_{current_day}"
+    questions = A1_WORDS_DATA.get(day_key, A1_WORDS_DATA.get("day_1"))
+
+    # Lug'at matnini ko'rsatish
+    vocab_text = f"📚 <b>{level.upper()} Daraja - {current_day}-kun lug'ati (30 ta so'z):</b>\n\n"
+    for idx, item in enumerate(questions, 1):
+        vocab_text += f"{idx}. <b>{item['word']}</b> — {item['meaning']}\n"
+
+    start_quiz_kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(text="🟢 A1 Daraja", callback_data="topic_a1"),
-                InlineKeyboardButton(text="🟡 A2 Daraja", callback_data="topic_a2")
-            ],
-            [
-                InlineKeyboardButton(text="🟠 B1 Daraja", callback_data="topic_b1"),
-                InlineKeyboardButton(text="🔴 B2 Daraja", callback_data="topic_b2")
-            ]
+            [InlineKeyboardButton(text="📝 Testni boshlash (30 ta quiz)", callback_data=f"startquiz_{level}_{current_day}")]
         ]
     )
 
-@dp.message(F.text == "📚 Lug'at (Wortschatz)")
-async def dictionary_handler(message: Message) -> None:
-    global VOCABULARY, TESTS
-    VOCABULARY, TESTS = load_data()
-
-    await message.answer(
-        "📚 <b>O'rganmoqchi bo'lgan darajangizni tanlang:</b>",
-        parse_mode="HTML",
-        reply_markup=get_levels_keyboard()
-    )
-
-@dp.callback_query(F.data.startswith("topic_"))
-async def send_topic_words(callback: CallbackQuery):
-    topic_key = callback.data.split("_")[1]
-    topic_data = VOCABULARY.get(topic_key)
-    
-    if not topic_data:
-        await callback.message.answer("Ushbu daraja bo'yicha lug'at topilmadi.")
-    else:
-        words_list = topic_data.get("words", [])
-        text = f"<b>{topic_data.get('title', '')}</b>\n\n"
-        
-        for idx, item in enumerate(words_list[:100], 1):
-            text += f"{idx}. <b>{item['word']}</b> — {item['meaning']}\n"
-            
-        back_kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Boshqa darajani tanlash", callback_data="back_to_topics")]]
-        )
-        await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_kb)
-    
+    await callback.message.edit_text(vocab_text, parse_mode="HTML", reply_markup=start_quiz_kb)
     await callback.answer()
 
-@dp.callback_query(F.data == "back_to_topics")
-async def back_to_topics_handler(callback: CallbackQuery):
-    await callback.message.edit_text(
-        "📚 <b>O'rganmoqchi bo'lgan darajangizni tanlang:</b>",
-        parse_mode="HTML",
-        reply_markup=get_levels_keyboard()
+@dp.callback_query(F.data.startswith("startquiz_"))
+async def start_quiz(callback: CallbackQuery, state: FSMContext):
+    _, level, day = callback.data.split("_")
+    day = int(day)
+    
+    day_key = f"day_{day}"
+    questions = A1_WORDS_DATA.get(day_key, A1_WORDS_DATA.get("day_1"))
+
+    await state.set_state(QuizState.current_index)
+    await state.update_data(
+        level=level,
+        day=day,
+        current_index=0,
+        correct_count=0,
+        questions=questions
     )
+
+    await callback.message.answer(f"🚀 <b>{level.upper()} - {day}-kun testi boshlandi!</b>\nOOmad!", parse_mode="HTML")
+    await send_next_question(callback.message, state)
     await callback.answer()
 
-# ----------------- TESTLAR BO'LIMI -----------------
+async def send_next_question(message: Message, state: FSMContext):
+    data = await state.get_data()
+    idx = data.get("current_index", 0)
+    questions = data.get("questions", [])
 
-@dp.message(F.text == "📝 Testlar")
-async def test_handler(message: Message) -> None:
-    test_buttons = []
-    for key in TESTS.keys():
-        test_buttons.append([InlineKeyboardButton(text=f"📝 {key.upper()} Testi", callback_data=f"test_{key}")])
-    
-    test_kb = InlineKeyboardMarkup(inline_keyboard=test_buttons)
-    await message.answer(
-        "🧠 <b>Bilimingizni sinash uchun testni tanlang:</b>",
-        parse_mode="HTML",
-        reply_markup=test_kb
-    )
-
-@dp.callback_query(F.data.startswith("test_"))
-async def run_test(callback: CallbackQuery):
-    level = callback.data.split("_")[1]
-    questions = TESTS.get(level, [])
-    if not questions:
-        await callback.message.answer("Testlar topilmadi.")
-    else:
-        q = questions[0]
-        await callback.message.answer_poll(
-            question=q["question"],
+    if idx < len(questions):
+        q = questions[idx]
+        poll_msg = await message.answer_poll(
+            question=f"[{idx+1}/30] '{q['word']}' so'zining ma'nosi nima?",
             options=q["options"],
             type="quiz",
             correct_option_id=q["correct"],
             is_anonymous=False
         )
-    await callback.answer()
+    else:
+        # Test yakunlandi - Natijani hisoblash
+        correct = data.get("correct_count", 0)
+        total = len(questions)
+        percentage = round((correct / total) * 100)
+        level = data.get("level")
+        day = data.get("day")
+        user_id = message.from_user.id
+
+        result_text = (
+            f"🏁 <b>Test yakunlandi!</b>\n\n"
+            f"Natijangiz: <b>{correct}/{total}</b> ({percentage}%)\n"
+        )
+
+        if percentage >= 80:
+            next_day = day + 1
+            update_user_day(user_id, level, next_day)
+            result_text += f"\n🎉 <b>Tabriklaymiz! 80% dan yuqori ball to'pladingiz. {next_day}-kun testi ochildi!</b>"
+        else:
+            result_text += "\n⚠️ <b>Afsus, 80% dan kam ball to'pladingiz. Keyingi kun ochilmadi. Qaytadan urinib ko'ring.</b>"
+
+        await message.answer(result_text, parse_mode="HTML", reply_markup=main_keyboard)
+        await state.clear()
+
+@dp.poll_answer()
+async def handle_poll_answer(poll_answer: PollAnswer, state: FSMContext):
+    data = await state.get_data()
+    if not data:
+        return
+
+    idx = data.get("current_index", 0)
+    questions = data.get("questions", [])
+    correct_count = data.get("correct_count", 0)
+
+    if idx < len(questions):
+        correct_option = questions[idx]["correct"]
+        if poll_answer.option_ids[0] == correct_option:
+            correct_count += 1
+
+        await state.update_data(current_index=idx + 1, correct_count=correct_count)
+        # Keyingi savolga o'tish
+        bot_user = await bot.get_me()
+        await bot.send_message(poll_answer.user.id, "Keyingi savol ⬇️")
+        await send_next_question_by_id(poll_answer.user.id, state)
+
+async def send_next_question_by_id(user_id: int, state: FSMContext):
+    data = await state.get_data()
+    idx = data.get("current_index", 0)
+    questions = data.get("questions", [])
+
+    if idx < len(questions):
+        q = questions[idx]
+        await bot.send_poll(
+            chat_id=user_id,
+            question=f"[{idx+1}/30] '{q['word']}' so'zining ma'nosi nima?",
+            options=q["options"],
+            type="quiz",
+            correct_option_id=q["correct"],
+            is_anonymous=False
+        )
+    else:
+        correct = data.get("correct_count", 0)
+        total = len(questions)
+        percentage = round((correct / total) * 100) if total > 0 else 0
+        level = data.get("level")
+        day = data.get("day")
+
+        result_text = (
+            f"🏁 <b>Test yakunlandi!</b>\n\n"
+            f"Natijangiz: <b>{correct}/{total}</b> ({percentage}%)\n"
+        )
+
+        if percentage >= 80:
+            next_day = day + 1
+            update_user_day(user_id, level, next_day)
+            result_text += f"\n🎉 <b>Tabriklaymiz! 80% dan yuqori ball to'pladingiz. {next_day}-kun testi ochildi!</b>"
+        else:
+            result_text += "\n⚠️ <b>Afsus, 80% dan kam ball to'pladingiz. Keyingi kun ochilmadi. Qaytadan urinib ko'ring.</b>"
+
+        await bot.send_message(chat_id=user_id, text=result_text, parse_mode="HTML", reply_markup=main_keyboard)
+        await state.clear()
 
 @dp.message(F.text == "ℹ️ Bot haqida")
 async def about_handler(message: Message) -> None:
     await message.answer(
-        "ℹ️ <b>Deutsch mit Ahrorbek</b> botida mavzulashtirilgan lug'at va testlar mavjud.",
+        "ℹ️ <b>Deutsch mit Ahrorbek</b> botida har kuni 30 ta so'z o'rganasiz va test topshirasiz.",
         parse_mode="HTML"
     )
 
