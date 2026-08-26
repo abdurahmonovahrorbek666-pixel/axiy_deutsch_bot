@@ -1,9 +1,4 @@
 {
-  "a1": [
-    {"word": "der Tag", "meaning": "kun"},
-    {"word": "die Zeit", "meaning": "vaqt"},
-    {"word": "das Haus", "meaning": "uy"}
-    {
   "a1": {
     "title": "🟢 A1 Daraja (Anfänger)",
     "words": [
@@ -47,48 +42,6 @@
       {"word": "gewährleisten", "meaning": "ta'minlamoq / kafolatlamoq"},
       {"word": "die Nachvollziehbarkeit", "meaning": "tushunarlilik"},
       {"word": "angemessen", "meaning": "mos / muvofiq"}
-    ]
-  }
-}
-  ],
-  "a2": [
-    {"word": "die Erfahrung", "meaning": "tajriba"},
-    {"word": "entscheiden", "meaning": "qaror qilmoq"}
-  ],
-  "b1": [
-    {"word": "die Voraussetzung", "meaning": "talab / shart"},
-    {"word": "beeinflussen", "meaning": "ta'sir o'tkazmoq"}
-  ],
-  "b2": [
-    {"word": "die Anforderung", "meaning": "talab"},
-    {"word": "berücksichtigen", "meaning": "hisobga olmoq"}
-  ]
-}
-{
-  "kennenlernen": {
-    "title": "🤝 Tanishuv va O'zi haqida gapirish (Kennenlernen)",
-    "words": [
-      {"word": "Wie heißen Sie?", "meaning": "Ismingiz nima? (Sizlab)"},
-      {"word": "Wie heißt du?", "meaning": "Ismingiz nima? (Senlab)"},
-      {"word": "Ich heiße...", "meaning": "Mening ismim..."},
-      {"word": "Mein Name ist...", "meaning": "Mening ismim..."},
-      {"word": "Wer bist du?", "meaning": "Siz kimsiz?"},
-      {"word": "Woher kommen Sie?", "meaning": "Qayerdansiz? (Sizlab)"},
-      {"word": "Woher kommst du?", "meaning": "Qayerdansiz? (Senlab)"},
-      {"word": "Ich komme aus...", "meaning": "Men ...danman (masalan: aus Usbekistan)"},
-      {"word": "Wo wohnen Sie?", "meaning": "Qayerda yashaysiz? (Sizlab)"},
-      {"word": "Wo wohnst du?", "meaning": "Qayerda yashaysiz? (Senlab)"},
-      {"word": "Ich wohne in...", "meaning": "Men ...da yashayman (masalan: in Taschkent)"},
-      {"word": "Wie alt sind Sie?", "meaning": "Yoshingiz nechida? (Sizlab)"},
-      {"word": "Wie alt bist du?", "meaning": "Yoshingiz nechida? (Senlab)"},
-      {"word": "Ich bin ... Jahre alt", "meaning": "Men ... yoshdaman"},
-      {"word": "Was sind Sie von Beruf?", "meaning": "Kasbingiz nima? (Sizlab)"},
-      {"word": "Was bist du von Beruf?", "meaning": "Kasbingiz nima? (Senlab)"},
-      {"word": "Ich bin Student / Studentin", "meaning": "Men talabaman (o'g'il / qiz)"},
-      {"word": "Welche Sprachen sprechen Sie?", "meaning": "Qaysi tillarda gapirasiz?"},
-      {"word": "Ich spreche Usbekisch und Deutsch", "meaning": "Men o'zbek va nemis tillarida gapiraman"},
-      {"word": "Freut mich!", "meaning": "Tanishganimdan xursandman!"},
-      {"word": "Sehr angenehm!", "meaning": "Juda yoqimli!"}
     ]
   }
 }
