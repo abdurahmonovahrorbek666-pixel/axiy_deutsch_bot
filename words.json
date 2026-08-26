@@ -12,6 +12,40 @@
       {"word": "das Haus", "meaning": "uy"},
       {"word": "kommen", "meaning": "kelmoq"},
       {"word": "wohnen", "meaning": "yashamoq"}
+      {
+  "day_1": [
+    {"word": "hallo", "meaning": "salom", "options": ["salom", "xayr", "rahmat", "ha"], "correct": 0},
+    {"word": "danke", "meaning": "rahmat", "options": ["yo'q", "rahmat", "marhamat", "bugun"], "correct": 1},
+    {"word": "bitte", "meaning": "marhamat / iltimos", "options": ["xayr", "salom", "marhamat / iltimos", "kechirasiz"], "correct": 2},
+    {"word": "ja", "meaning": "ha", "options": ["ha", "yo'q", "balki", "albatta"], "correct": 0},
+    {"word": "nein", "meaning": "yo'q", "options": ["ha", "yo'q", "yaxshi", "yomon"], "correct": 1},
+    {"word": "Guten Morgen", "meaning": "Xayrli tong", "options": ["Xayrli kech", "Xayrli tong", "Xayrli kun", "Xayr"], "correct": 1},
+    {"word": "Guten Tag", "meaning": "Xayrli kun", "options": ["Xayrli kun", "Tungi salom", "Ertagacha", "Rahmat"], "correct": 0},
+    {"word": "Guten Abend", "meaning": "Xayrli kech", "options": ["Xayrli tong", "Xayrli kun", "Xayrli kech", "Xayr"], "correct": 2},
+    {"word": "Gute Nacht", "meaning": "Xayrli tun", "options": ["Xayrli tun", "Kun xayrli bo'lsin", "Salom", "Afsus"], "correct": 0},
+    {"word": "Tschüss", "meaning": "Xayr", "options": ["Salom", "Xayr", "Rahmat", "Iltimos"], "correct": 1},
+    {"word": "Auf Wiedersehen", "meaning": "Ko'rishguncha", "options": ["Salom", "Ko'rishguncha", "Xush kelibsiz", "Rahmat"], "correct": 1},
+    {"word": "der Mann", "meaning": "erkak", "options": ["ayol", "erkak", "boshliq", "bola"], "correct": 1},
+    {"word": "die Frau", "meaning": "ayol / xotin", "options": ["qiz", "ayol / xotin", "ona", "opa"], "correct": 1},
+    {"word": "das Kind", "meaning": "bola", "options": ["o'g'il", "qiz", "bola", "talaba"], "correct": 2},
+    {"word": "der Junge", "meaning": "o'g'il bola", "options": ["qiz bola", "o'g'il bola", "aka", "uka"], "correct": 1},
+    {"word": "das Mädchen", "meaning": "qiz bola", "options": ["qiz bola", "onasi", "opa", "singil"], "correct": 0},
+    {"word": "der Freund", "meaning": "do'st (o'g'il)", "options": ["dushman", "do'st", "qo'shni", "talaba"], "correct": 1},
+    {"word": "die Freundin", "meaning": "do'st (qiz)", "options": ["qiz do'st", "singil", "shifokor", "o'qituvchi"], "correct": 0},
+    {"word": "der Name", "meaning": "ism", "options": ["familiya", "ism", "shahar", "yosh"], "correct": 1},
+    {"word": "das Land", "meaning": "mamlakat", "options": ["shahar", "kenglik", "mamlakat", "qishloq"], "correct": 2},
+    {"word": "die Stadt", "meaning": "shahar", "options": ["shahar", "qishloq", "davlat", "uy"], "correct": 0},
+    {"word": "die Sprache", "meaning": "til", "options": ["so'z", "til", "gap", "harf"], "correct": 1},
+    {"word": "lernen", "meaning": "o'rganmoq", "options": ["yozmoq", "o'qimoq", "o'rganmoq", "gapirmoq"], "correct": 2},
+    {"word": "sprechen", "meaning": "gapirmoq", "options": ["eshitmoq", "gapirmoq", "ko'rmoq", "yozmoq"], "correct": 1},
+    {"word": "verstehen", "meaning": "tushunmoq", "options": ["tushunmoq", "so'ramoq", "bilmoq", "o'ylamoq"], "correct": 0},
+    {"word": "schreiben", "meaning": "yozmoq", "options": ["chizmoq", "yozmoq", "o'qimoq", "tinglamoq"], "correct": 1},
+    {"word": "lesen", "meaning": "o'qimoq", "options": ["yozmoq", "o'qimoq", "gapirmoq", "tinglamoq"], "correct": 1},
+    {"word": "hören", "meaning": "eshitmoq", "options": ["eshitmoq", "ko'rmoq", "sezmoq", "aytmoq"], "correct": 0},
+    {"word": "fragen", "meaning": "so'ramoq", "options": ["javob bermoq", "so'ramoq", "aytmoq", "chaqirmoq"], "correct": 1},
+    {"word": "antworten", "meaning": "javob bermoq", "options": ["so'ramoq", "javob bermoq", "yozmoq", "o'qimoq"], "correct": 1}
+  ]
+}
     ]
   },
   "a2": {
