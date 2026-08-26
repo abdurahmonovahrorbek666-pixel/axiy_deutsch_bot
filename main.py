@@ -48,7 +48,7 @@ def init_db():
 def get_user_day(user_id: int, level: str = "a1") -> int:
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute(f"SELECT {level}_day FROM user_progress WHERE user_id = ?", (user_id,))
+    cursor.execute(f"SELECT {level.lower()}_day FROM user_progress WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     if not row:
         cursor.execute("INSERT INTO user_progress (user_id) VALUES (?)", (user_id,))
@@ -61,28 +61,39 @@ def get_user_day(user_id: int, level: str = "a1") -> int:
 def update_user_day(user_id: int, level: str, next_day: int):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute(f"UPDATE user_progress SET {level}_day = ? WHERE user_id = ?", (next_day, user_id))
+    cursor.execute(f"UPDATE user_progress SET {level.lower()}_day = ? WHERE user_id = ?", (next_day, user_id))
     conn.commit()
     conn.close()
 
 init_db()
 
-# ----------------- JSON SO'ZLAR BAZASINI O'QISH -----------------
+# ----------------- UNIVERSAL JSON O'QISH -----------------
 
 def load_words_data(level: str, day: int):
-    filename = "words_a1.json"  # Fayl nomingiz bilan mos bo'lishi kerak
+    filename = "words_a1.json"
     if os.path.exists(filename):
         with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
-            level_data = data.get(level.lower(), {})
-            days_data = level_data.get("days", {})
+            
+            # Level kalitini moslashtirish (a1, A1, va hokazo)
+            level_key = level.lower()
+            if level_key not in data:
+                level_key = level.upper()
+                
+            level_data = data.get(level_key, {})
+            
+            # Ichki 'days' obyekti bor-yo'qligini tekshirish
+            if isinstance(level_data, dict) and "days" in level_data:
+                days_data = level_data.get("days", {})
+            elif isinstance(level_data, dict):
+                days_data = level_data
+            else:
+                days_data = data
+                
             return days_data.get(f"day_{day}", [])
     return []
 
 # ----------------- FSM NIZOMLARI -----------------
-
-class AdminStates(StatesGroup):
-    waiting_for_broadcast_text = State()
 
 class QuizState(StatesGroup):
     level = State()
@@ -101,14 +112,6 @@ main_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-admin_keyboard = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="📢 Xabar yuborish (Broadcast)")],
-        [KeyboardButton(text="⬅️ Bosh menyuga qaytish")]
-    ],
-    resize_keyboard=True
-)
-
 def get_levels_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -123,14 +126,10 @@ def get_levels_keyboard():
 async def start_handler(message: Message) -> None:
     user_name = message.from_user.first_name if message.from_user else "Foydalanuvchi"
     await message.answer(
-        f"Hallo, <b>{user_name}</b>!\n\nNemis tili kunlik 30 ta so'z va test tizimiga xush kelibsiz!",
+        f"Hallo, <b>{user_name}</b>!\n\nNemis tili kunlik lug'at va test tizimiga xush kelibsiz!",
         parse_mode="HTML",
         reply_markup=main_keyboard
     )
-
-@dp.message(F.text == "⬅️ Bosh menyuga qaytish")
-async def back_to_main_user(message: Message):
-    await message.answer("Bosh menyu:", reply_markup=main_keyboard)
 
 @dp.message(F.text == "📊 Natijalarim")
 async def show_results(message: Message):
@@ -265,7 +264,7 @@ async def send_next_question_by_id(user_id: int, state: FSMContext):
                 ]
             )
         else:
-            result_text += "\n⚠️ <b>80% to'play olmadingiz. {day}-kunda qolasiz. Qayta urinib ko'ring.</b>"
+            result_text += f"\n⚠️ <b>80% to'play olmadingiz. {day}-kunda qolasiz. Qayta urinib ko'ring.</b>"
             next_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [InlineKeyboardButton(text=f"🔄 {day}-kun testini qayta topshirish", callback_data=f"startquiz_{level}_{day}")]
@@ -282,8 +281,10 @@ async def about_handler(message: Message) -> None:
         parse_mode="HTML"
     )
 
+# ----------------- SERVER / WEB SERVICE (Render Port) -----------------
+
 async def handle_web(request):
-    return web.Response(text="Bot active")
+    return web.Response(text="Bot runs smoothly!")
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
