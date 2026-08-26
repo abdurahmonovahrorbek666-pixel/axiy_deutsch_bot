@@ -82,7 +82,6 @@ class QuizState(StatesGroup):
 
 # ----------------- NAMUNAVIY SO'ZLAR MA'LUMOTI (A1 KUNLIK) -----------------
 
-# Har bir kunga 30 tadan so'z va testlar biriktiriladi (namuna tariqasida 1-kun to'liq shakllantirilgan)
 A1_WORDS_DATA = {
     "day_1": [
         {"word": "hallo", "meaning": "salom", "options": ["salom", "xayr", "rahmat", "ha"], "correct": 0},
@@ -155,13 +154,12 @@ async def start_handler(message: Message) -> None:
         reply_markup=main_keyboard
     )
 
-# Admin panel
 @dp.message(Command("admin"))
 async def admin_start(message: Message):
     if str(message.from_user.id) == str(ADMIN_ID):
         await message.answer("👨‍💻 <b>Admin paneli:</b>", parse_mode="HTML", reply_markup=admin_keyboard)
     else:
-        await message.answer("⚠️ Admin emasasiz.")
+        await message.answer("⚠️ Admin emassiz.")
 
 @dp.message(F.text == "📢 Xabar yuborish (Broadcast)")
 async def broadcast_prompt(message: Message, state: FSMContext):
@@ -189,7 +187,6 @@ async def show_results(message: Message):
     b1_day = get_user_day(user_id, "b1")
     b2_day = get_user_day(user_id, "b2")
 
-    # 20 kunga bo'linganligi sababli har bir kun 5% ni tashkil etadi
     a1_pct = min(round(((a1_day - 1) / 20) * 100), 100)
     a2_pct = min(round(((a2_day - 1) / 20) * 100), 100)
     b1_pct = min(round(((b1_day - 1) / 20) * 100), 100)
@@ -221,11 +218,9 @@ async def choose_level(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     current_day = get_user_day(user_id, level)
 
-    # Agar A1 bo'lsa va tayyor fayl bo'lsa, mos kunga tegishli ma'lumotni oladi
     day_key = f"day_{current_day}"
     questions = A1_WORDS_DATA.get(day_key, A1_WORDS_DATA.get("day_1"))
 
-    # Lug'at matnini ko'rsatish
     vocab_text = f"📚 <b>{level.upper()} Daraja - {current_day}-kun lug'ati (30 ta so'z):</b>\n\n"
     for idx, item in enumerate(questions, 1):
         vocab_text += f"{idx}. <b>{item['word']}</b> — {item['meaning']}\n"
@@ -256,47 +251,9 @@ async def start_quiz(callback: CallbackQuery, state: FSMContext):
         questions=questions
     )
 
-    await callback.message.answer(f"🚀 <b>{level.upper()} - {day}-kun testi boshlandi!</b>\nOOmad!", parse_mode="HTML")
-    await send_next_question(callback.message, state)
+    await callback.message.answer(f"🚀 <b>{level.upper()} - {day}-kun testi boshlandi!</b>\nOmad!", parse_mode="HTML")
+    await send_next_question_by_id(callback.from_user.id, state)
     await callback.answer()
-
-async def send_next_question(message: Message, state: FSMContext):
-    data = await state.get_data()
-    idx = data.get("current_index", 0)
-    questions = data.get("questions", [])
-
-    if idx < len(questions):
-        q = questions[idx]
-        poll_msg = await message.answer_poll(
-            question=f"[{idx+1}/30] '{q['word']}' so'zining ma'nosi nima?",
-            options=q["options"],
-            type="quiz",
-            correct_option_id=q["correct"],
-            is_anonymous=False
-        )
-    else:
-        # Test yakunlandi - Natijani hisoblash
-        correct = data.get("correct_count", 0)
-        total = len(questions)
-        percentage = round((correct / total) * 100)
-        level = data.get("level")
-        day = data.get("day")
-        user_id = message.from_user.id
-
-        result_text = (
-            f"🏁 <b>Test yakunlandi!</b>\n\n"
-            f"Natijangiz: <b>{correct}/{total}</b> ({percentage}%)\n"
-        )
-
-        if percentage >= 80:
-            next_day = day + 1
-            update_user_day(user_id, level, next_day)
-            result_text += f"\n🎉 <b>Tabriklaymiz! 80% dan yuqori ball to'pladingiz. {next_day}-kun testi ochildi!</b>"
-        else:
-            result_text += "\n⚠️ <b>Afsus, 80% dan kam ball to'pladingiz. Keyingi kun ochilmadi. Qaytadan urinib ko'ring.</b>"
-
-        await message.answer(result_text, parse_mode="HTML", reply_markup=main_keyboard)
-        await state.clear()
 
 @dp.poll_answer()
 async def handle_poll_answer(poll_answer: PollAnswer, state: FSMContext):
@@ -314,9 +271,6 @@ async def handle_poll_answer(poll_answer: PollAnswer, state: FSMContext):
             correct_count += 1
 
         await state.update_data(current_index=idx + 1, correct_count=correct_count)
-        # Keyingi savolga o'tish
-        bot_user = await bot.get_me()
-        await bot.send_message(poll_answer.user.id, "Keyingi savol ⬇️")
         await send_next_question_by_id(poll_answer.user.id, state)
 
 async def send_next_question_by_id(user_id: int, state: FSMContext):
@@ -335,6 +289,7 @@ async def send_next_question_by_id(user_id: int, state: FSMContext):
             is_anonymous=False
         )
     else:
+        # Test tugaganidan keyin javobni tekshirish
         correct = data.get("correct_count", 0)
         total = len(questions)
         percentage = round((correct / total) * 100) if total > 0 else 0
@@ -346,14 +301,27 @@ async def send_next_question_by_id(user_id: int, state: FSMContext):
             f"Natijangiz: <b>{correct}/{total}</b> ({percentage}%)\n"
         )
 
+        next_kb = None
         if percentage >= 80:
             next_day = day + 1
             update_user_day(user_id, level, next_day)
             result_text += f"\n🎉 <b>Tabriklaymiz! 80% dan yuqori ball to'pladingiz. {next_day}-kun testi ochildi!</b>"
+            
+            # Keyingi kun testi va lug'atiga o'tish tugmasi
+            next_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text=f"➡️ {next_day}-kun lug'ati va testini boshlash", callback_data=f"level_{level}")]
+                ]
+            )
         else:
             result_text += "\n⚠️ <b>Afsus, 80% dan kam ball to'pladingiz. Keyingi kun ochilmadi. Qaytadan urinib ko'ring.</b>"
+            next_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text=f"🔄 {day}-kun testini qayta topshirish", callback_data=f"startquiz_{level}_{day}")]
+                ]
+            )
 
-        await bot.send_message(chat_id=user_id, text=result_text, parse_mode="HTML", reply_markup=main_keyboard)
+        await bot.send_message(chat_id=user_id, text=result_text, parse_mode="HTML", reply_markup=next_kb)
         await state.clear()
 
 @dp.message(F.text == "ℹ️ Bot haqida")
