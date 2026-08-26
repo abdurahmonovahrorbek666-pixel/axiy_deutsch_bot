@@ -13,10 +13,11 @@
       {"word": "kommen", "meaning": "kelmoq"},
       {"word": "wohnen", "meaning": "yashamoq"}
       {
+  {
   "day_1": [
     {"word": "hallo", "meaning": "salom", "options": ["salom", "xayr", "rahmat", "ha"], "correct": 0},
     {"word": "danke", "meaning": "rahmat", "options": ["yo'q", "rahmat", "marhamat", "bugun"], "correct": 1},
-    {"word": "bitte", "meaning": "marhamat / iltimos", "options": ["xayr", "salom", "marhamat / iltimos", "kechirasiz"], "correct": 2},
+    {"word": "bitte", "meaning": "marhamat", "options": ["xayr", "salom", "marhamat", "kechirasiz"], "correct": 2},
     {"word": "ja", "meaning": "ha", "options": ["ha", "yo'q", "balki", "albatta"], "correct": 0},
     {"word": "nein", "meaning": "yo'q", "options": ["ha", "yo'q", "yaxshi", "yomon"], "correct": 1},
     {"word": "Guten Morgen", "meaning": "Xayrli tong", "options": ["Xayrli kech", "Xayrli tong", "Xayrli kun", "Xayr"], "correct": 1},
@@ -44,10 +45,40 @@
     {"word": "hören", "meaning": "eshitmoq", "options": ["eshitmoq", "ko'rmoq", "sezmoq", "aytmoq"], "correct": 0},
     {"word": "fragen", "meaning": "so'ramoq", "options": ["javob bermoq", "so'ramoq", "aytmoq", "chaqirmoq"], "correct": 1},
     {"word": "antworten", "meaning": "javob bermoq", "options": ["so'ramoq", "javob bermoq", "yozmoq", "o'qimoq"], "correct": 1}
+  ],
+  "day_2": [
+    {"word": "der Vater", "meaning": "ota", "options": ["ona", "ota", "aka", "bobo"], "correct": 1},
+    {"word": "die Mutter", "meaning": "ona", "options": ["ona", "opa", "bobi", "xola"], "correct": 0},
+    {"word": "der Sohn", "meaning": "o'g'il", "options": ["qiz", "o me'mor", "o'g'il", "aka"], "correct": 2},
+    {"word": "die Tochter", "meaning": "qiz perzent", "options": ["ona", "singil", "qiz perzent", "amaki"], "correct": 2},
+    {"word": "der Bruder", "meaning": "aka/uka", "options": ["aka/uka", "dada", "do'st", "o'qituvchi"], "correct": 0},
+    {"word": "die Schwester", "meaning": "opa/singil", "options": ["xola", "opa/singil", "qo'shni", "ona"], "correct": 1},
+    {"word": "die Familie", "meaning": "oila", "options": ["uy", "oila", "shahar", "do'stlar"], "correct": 1},
+    {"word": "das Haus", "meaning": "uy", "options": ["xona", "uy", "bino", "eshik"], "correct": 1},
+    {"word": "die Wohnung", "meaning": "xonadon (kvartira)", "options": ["xonadon (kvartira)", "hovli", "ko'cha", "shahar"], "correct": 0},
+    {"word": "das Zimmer", "meaning": "xona", "options": ["oshxona", "deraza", "xona", "stul"], "correct": 2},
+    {"word": "die Küche", "meaning": "oshxona", "options": ["oshxona", "yotoqxona", "burchak", "uy"], "correct": 0},
+    {"word": "das Bad", "meaning": "vanna xonasi", "options": ["vanna xonasi", "tualet", "zal", "balkon"], "correct": 0},
+    {"word": "der Tisch", "meaning": "stol", "options": ["stul", "stol", "shkaf", "krovat"], "correct": 1},
+    {"word": "der Stuhl", "meaning": "stul", "options": ["stol", "stul", "gilam", "deraza"], "correct": 1},
+    {"word": "das Bett", "meaning": "krovat", "options": ["yastik", "krovat", "xona", "stol"], "correct": 1},
+    {"word": "die Tür", "meaning": "eshik", "options": ["deraza", "eshik", "devor", "tom"], "correct": 1},
+    {"word": "das Fenster", "meaning": "deraza", "options": ["deraza", "eshik", "parda", "ko'cha"], "correct": 0},
+    {"word": "wohnen", "meaning": "yashamoq", "options": ["ishlamoq", "yashamoq", "uxlamoq", "o'tirmoq"], "correct": 1},
+    {"word": "arbeiten", "meaning": "ishlamoq", "options": ["o'ynamoq", "ishlamoq", "dam olmoq", "yozmoq"], "correct": 1},
+    {"word": "schlafen", "meaning": "uxlamoq", "options": ["yurmoq", "uxlamoq", "turmoq", "yemoq"], "correct": 1},
+    {"word": "essen", "meaning": "yemoq", "options": ["ichmoq", "yemoq", "pishirmoq", "olmoq"], "correct": 1},
+    {"word": "trinken", "meaning": "ichmoq", "options": ["yemoq", "ichmoq", "quyish", "sotib olmoq"], "correct": 1},
+    {"word": "kochen", "meaning": "ovqat pishirmoq", "options": ["yemoq", "yuvmoq", "ovqat pishirmoq", "tozalamoq"], "correct": 2},
+    {"word": "groß", "meaning": "katta", "options": ["kichik", "katta", "uzun", "keng"], "correct": 1},
+    {"word": "klein", "meaning": "kichik", "options": ["katta", "baland", "kichik", "past"], "correct": 2},
+    {"word": "schön", "meaning": "chiroyli", "options": ["xunuk", "chiroyli", "yaxshi", "yangi"], "correct": 1},
+    {"word": "alt", "meaning": "eski / qari", "options": ["yangi", "eski / qari", "yosh", "katta"], "correct": 1},
+    {"word": "neu", "meaning": "yangi", "options": ["eski", "yangi", "zamonaviy", "chiroyli"], "correct": 1},
+    {"word": "gut", "meaning": "yaxshi", "options": ["yomon", "yaxshi", "to'g'ri", "tayyor"], "correct": 1},
+    {"word": "schlecht", "meaning": "yomon", "options": ["yaxshi", "yomon", "qiyin", "oson"], "correct": 1}
   ]
 }
-    ]
-  },
   "a2": {
     "title": "🟡 A2 Daraja (Grundlegende Kenntnisse)",
     "words": [
