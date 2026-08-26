@@ -43,9 +43,9 @@ def load_data():
     except Exception:
         tests = {}
         
-    return words, TESTS
+    return words, tests
 
-VOCABULARY, TESTS = load_data()
+VOCABULARY, tests = load_data()
 
 # Asosiy klaviatura
 main_keyboard = ReplyKeyboardMarkup(
