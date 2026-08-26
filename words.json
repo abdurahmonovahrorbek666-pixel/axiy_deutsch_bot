@@ -3,6 +3,53 @@
     {"word": "der Tag", "meaning": "kun"},
     {"word": "die Zeit", "meaning": "vaqt"},
     {"word": "das Haus", "meaning": "uy"}
+    {
+  "a1": {
+    "title": "🟢 A1 Daraja (Anfänger)",
+    "words": [
+      {"word": "hallo", "meaning": "salom"},
+      {"word": "danke", "meaning": "rahmat"},
+      {"word": "bitte", "meaning": "marhamat / arzimaydi"},
+      {"word": "ja", "meaning": "ha"},
+      {"word": "nein", "meaning": "yo'q"},
+      {"word": "der Tag", "meaning": "kun"},
+      {"word": "die Nacht", "meaning": "tun"},
+      {"word": "das Haus", "meaning": "uy"},
+      {"word": "kommen", "meaning": "kelmoq"},
+      {"word": "wohnen", "meaning": "yashamoq"}
+    ]
+  },
+  "a2": {
+    "title": "🟡 A2 Daraja (Grundlegende Kenntnisse)",
+    "words": [
+      {"word": "die Erfahrung", "meaning": "tajriba"},
+      {"word": "entscheiden", "meaning": "qaror qilmoq"},
+      {"word": "die Ausbildung", "meaning": "kasbiy ta'lim"},
+      {"word": "pünktlich", "meaning": "o'z vaqtida"},
+      {"word": "bekommen", "meaning": "olmoq"},
+      {"word": "versuchen", "meaning": "harakat qilmoq"}
+    ]
+  },
+  "b1": {
+    "title": "🟠 B1 Daraja (Fortgeschrittene Sprachverwendung)",
+    "words": [
+      {"word": "die Voraussetzung", "meaning": "talab / shart"},
+      {"word": "berücksichtigen", "meaning": "hisobga olmoq"},
+      {"word": "die Entwicklung", "meaning": "rivojlanish"},
+      {"word": "bevorzugen", "meaning": "afzal ko'rmoq"},
+      {"word": "die Auswirkung", "meaning": "ta'sir"}
+    ]
+  },
+  "b2": {
+    "title": "🔴 B2 Daraja (Selbstständige Sprachverwendung)",
+    "words": [
+      {"word": "die Beeinträchtigung", "meaning": "salbiy ta'sir / cheklov"},
+      {"word": "gewährleisten", "meaning": "ta'minlamoq / kafolatlamoq"},
+      {"word": "die Nachvollziehbarkeit", "meaning": "tushunarlilik"},
+      {"word": "angemessen", "meaning": "mos / muvofiq"}
+    ]
+  }
+}
   ],
   "a2": [
     {"word": "die Erfahrung", "meaning": "tajriba"},
