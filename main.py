@@ -80,7 +80,7 @@ class QuizState(StatesGroup):
     correct_count = State()
     questions = State()
 
-# ----------------- NAMUNAVIY SO'ZLAR MA'LUMOTI (A1 KUNLIK) -----------------
+# ----------------- SO'ZLAR MA'LUMOTI (KUNLAR BO'YICHA) -----------------
 
 A1_WORDS_DATA = {
     "day_1": [
@@ -114,6 +114,38 @@ A1_WORDS_DATA = {
         {"word": "hören", "meaning": "eshitmoq", "options": ["eshitmoq", "ko'rmoq", "sezmoq", "aytmoq"], "correct": 0},
         {"word": "fragen", "meaning": "so'ramoq", "options": ["javob bermoq", "so'ramoq", "aytmoq", "chaqirmoq"], "correct": 1},
         {"word": "antworten", "meaning": "javob bermoq", "options": ["so'ramoq", "javob bermoq", "yozmoq", "o'qimoq"], "correct": 1}
+    ],
+    "day_2": [
+        {"word": "der Vater", "meaning": "ota", "options": ["ona", "ota", "aka", "bobo"], "correct": 1},
+        {"word": "die Mutter", "meaning": "ona", "options": ["ona", "opa", "bobi", "xola"], "correct": 0},
+        {"word": "der Sohn", "meaning": "o'g'il", "options": ["qiz", "o'g'il", "noma'lum", "aka"], "correct": 1},
+        {"word": "die Tochter", "meaning": "qiz perzent", "options": ["ona", "singil", "qiz perzent", "amaki"], "correct": 2},
+        {"word": "der Bruder", "meaning": "aka/uka", "options": ["aka/uka", "dada", "do'st", "o'qituvchi"], "correct": 0},
+        {"word": "die Schwester", "meaning": "opa/singil", "options": ["xola", "opa/singil", "qo'shni", "ona"], "correct": 1},
+        {"word": "die Familie", "meaning": "oila", "options": ["uy", "oila", "shahar", "do'stlar"], "correct": 1},
+        {"word": "das Haus", "meaning": "uy", "options": ["xona", "uy", "bino", "eshik"], "correct": 1},
+        {"word": "die Wohnung", "meaning": "xonadon (kvartira)", "options": ["xonadon (kvartira)", "hovli", "ko'cha", "shahar"], "correct": 0},
+        {"word": "das Zimmer", "meaning": "xona", "options": ["oshxona", "deraza", "xona", "stul"], "correct": 2},
+        {"word": "die Küche", "meaning": "oshxona", "options": ["oshxona", "yotoqxona", "burchak", "uy"], "correct": 0},
+        {"word": "das Bad", "meaning": "vanna xonasi", "options": ["vanna xonasi", "tualet", "zal", "balkon"], "correct": 0},
+        {"word": "der Tisch", "meaning": "stol", "options": ["stul", "stol", "shkaf", "krovat"], "correct": 1},
+        {"word": "der Stuhl", "meaning": "stul", "options": ["stol", "stul", "gilam", "deraza"], "correct": 1},
+        {"word": "das Bett", "meaning": "krovat", "options": ["yastik", "krovat", "xona", "stol"], "correct": 1},
+        {"word": "die Tür", "meaning": "eshik", "options": ["deraza", "eshik", "devor", "tom"], "correct": 1},
+        {"word": "das Fenster", "meaning": "deraza", "options": ["deraza", "eshik", "parda", "ko'cha"], "correct": 0},
+        {"word": "wohnen", "meaning": "yashamoq", "options": ["ishlamoq", "yashamoq", "uxlamoq", "o'tirmoq"], "correct": 1},
+        {"word": "arbeiten", "meaning": "ishlamoq", "options": ["o'ynamoq", "ishlamoq", "dam olmoq", "yozmoq"], "correct": 1},
+        {"word": "schlafen", "meaning": "uxlamoq", "options": ["yurmoq", "uxlamoq", "turmoq", "yemoq"], "correct": 1},
+        {"word": "essen", "meaning": "yemoq", "options": ["ichmoq", "yemoq", "pishirmoq", "olmoq"], "correct": 1},
+        {"word": "trinken", "meaning": "ichmoq", "options": ["yemoq", "ichmoq", "quyish", "sotib olmoq"], "correct": 1},
+        {"word": "kochen", "meaning": "ovqat pishirmoq", "options": ["yemoq", "yuvmoq", "ovqat pishirmoq", "tozalamoq"], "correct": 2},
+        {"word": "groß", "meaning": "katta", "options": ["kichik", "katta", "uzun", "keng"], "correct": 1},
+        {"word": "klein", "meaning": "kichik", "options": ["katta", "baland", "kichik", "past"], "correct": 2},
+        {"word": "schön", "meaning": "chiroyli", "options": ["xunuk", "chiroyli", "yaxshi", "yangi"], "correct": 1},
+        {"word": "alt", "meaning": "eski / qari", "options": ["yangi", "eski / qari", "yosh", "katta"], "correct": 1},
+        {"word": "neu", "meaning": "yangi", "options": ["eski", "yangi", "zamonaviy", "chiroyli"], "correct": 1},
+        {"word": "gut", "meaning": "yaxshi", "options": ["yomon", "yaxshi", "to'g'ri", "tayyor"], "correct": 1},
+        {"word": "schlecht", "meaning": "yomon", "options": ["yaxshi", "yomon", "qiyin", "oson"], "correct": 1}
     ]
 }
 
@@ -219,6 +251,7 @@ async def choose_level(callback: CallbackQuery, state: FSMContext):
     current_day = get_user_day(user_id, level)
 
     day_key = f"day_{current_day}"
+    # Agar so'ralgan kun bazada bo'lmasa, tayyor bo'lgan oxirgi kunni oladi
     questions = A1_WORDS_DATA.get(day_key, A1_WORDS_DATA.get("day_1"))
 
     vocab_text = f"📚 <b>{level.upper()} Daraja - {current_day}-kun lug'ati (30 ta so'z):</b>\n\n"
@@ -289,7 +322,6 @@ async def send_next_question_by_id(user_id: int, state: FSMContext):
             is_anonymous=False
         )
     else:
-        # Test tugaganidan keyin javobni tekshirish
         correct = data.get("correct_count", 0)
         total = len(questions)
         percentage = round((correct / total) * 100) if total > 0 else 0
@@ -307,7 +339,6 @@ async def send_next_question_by_id(user_id: int, state: FSMContext):
             update_user_day(user_id, level, next_day)
             result_text += f"\n🎉 <b>Tabriklaymiz! 80% dan yuqori ball to'pladingiz. {next_day}-kun testi ochildi!</b>"
             
-            # Keyingi kun testi va lug'atiga o'tish tugmasi
             next_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [InlineKeyboardButton(text=f"➡️ {next_day}-kun lug'ati va testini boshlash", callback_data=f"level_{level}")]
