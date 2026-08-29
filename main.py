@@ -30,17 +30,21 @@ dp = Dispatcher(storage=MemoryStorage())
 users_db = {}
 active_polls = {}
 
-# Render Web Service portini aldash uchun sodda xabar
+# Render Web Service uchun sog'lomlik tekshiruv nuqtasi (Ping)
 async def handle_ping(request):
     return web.Response(text="Bot is running smoothly!")
 
 # Lug'at faylini (words.json) yuklash
 def load_words():
     try:
-        with open("words.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+        if os.path.exists("words.json"):
+            with open("words.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        else:
+            logging.error("Xatolik: words.json fayli topilmadi!")
+            return {}
     except Exception as e:
-        logging.error(f"words.json yuklashda xatolik: {e}")
+        logging.error(f"words.json faylini o'qishda xatolik: {e}")
         return {}
 
 words_data = load_words()
@@ -147,6 +151,7 @@ async def show_levels(message: types.Message):
 # Kunlar menyusi (Unlock Tizimi)
 @dp.callback_query(F.data.startswith("showdays_"))
 async def show_days(callback: CallbackQuery):
+    await callback.answer()
     level = callback.data.split("_")[1]
     user_id = callback.from_user.id
     user = get_user_data(user_id, callback.from_user.username)
@@ -185,7 +190,6 @@ async def show_days(callback: CallbackQuery):
         parse_mode="HTML",
         reply_markup=kb
     )
-    await callback.answer()
 
 # Qulflangan kun bosilganda
 @dp.callback_query(F.data.startswith("locked_"))
@@ -196,6 +200,7 @@ async def locked_day_handler(callback: CallbackQuery):
 # Orqaga qaytish
 @dp.callback_query(F.data == "back_to_levels")
 async def back_to_levels(callback: CallbackQuery):
+    await callback.answer()
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🟢 A1 Daraja (Anfänger)", callback_data="showdays_a1")],
@@ -205,18 +210,19 @@ async def back_to_levels(callback: CallbackQuery):
         ]
     )
     await callback.message.edit_text("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
-    await callback.answer()
 
 # Lug'atni ko'rsatish
 @dp.callback_query(F.data.startswith("viewday_"))
 async def view_day_words(callback: CallbackQuery):
+    await callback.answer()
+    
     _, level, day_key = callback.data.split("_")
     day_num = day_key.split("_")[1]
     
     questions = words_data.get(level, {}).get("days", {}).get(day_key, [])
     
     if not questions:
-        await callback.answer(f"⚠️ {day_num}-kun uchun lug'at hali kiritilmagan.", show_alert=True)
+        await callback.message.answer(f"⚠️ {day_num}-kun uchun lug'at hali kiritilmagan yoki fayl yuklanmagan.")
         return
 
     vocab_text = (
@@ -259,7 +265,6 @@ async def view_day_words(callback: CallbackQuery):
     )
 
     await callback.message.edit_text(vocab_text, parse_mode="HTML", reply_markup=start_quiz_kb)
-    await callback.answer()
 
 # Keyingi savolni yuborish funksiyasi
 async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int, correct_count: int):
@@ -311,10 +316,10 @@ async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int,
 # Testni boshlash (Callback bo'yicha)
 @dp.callback_query(F.data.startswith("startquiz_"))
 async def start_quiz(callback: CallbackQuery):
+    await callback.answer()
     _, level, day_key, q_idx, correct_count = callback.data.split("_")
     user_id = callback.from_user.id
     
-    await callback.answer()
     await send_next_question(user_id, level, day_key, int(q_idx), int(correct_count))
 
 # Test javoblarini ushlab olish (PollAnswer)
@@ -344,7 +349,7 @@ async def main():
     logging.info("Bot ishga tushmoqda...")
     await bot.delete_webhook(drop_pending_updates=True)
     
-    # Render uchun HTTP serverni orqa fonda ishga tushirish
+    # Render Web Service uchun orqa fonda HTTP server
     app = web.Application()
     app.router.add_get('/', handle_ping)
     runner = web.AppRunner(app)
