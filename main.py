@@ -68,28 +68,42 @@ def update_user_day(user_id: int, level: str, next_day: int):
 
 init_db()
 
-# ----------------- UNIVERSAL JSON O'QISH -----------------
+# ----------------- YANGI YANGLANGAN JSON O'QISH FUNKSIYASI -----------------
 
 def load_words_data(level: str, day: int):
-    filename = "words_a1.json"
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            
-            level_key = level.lower()
-            if level_key not in data:
-                level_key = level.upper()
+    # Dastur avval words.json, u bo'lmasa words_a1.json faylini izlaydi
+    filenames = ["words.json", "words_a1.json"]
+    filename = None
+    
+    for fn in filenames:
+        if os.path.exists(fn):
+            filename = fn
+            break
+
+    if filename:
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                data = json.load(f)
                 
-            level_data = data.get(level_key, {})
-            
-            if isinstance(level_data, dict) and "days" in level_data:
-                days_data = level_data.get("days", {})
-            elif isinstance(level_data, dict):
-                days_data = level_data
-            else:
-                days_data = data
+                # Darajani aniqlash (a1 yoki A1)
+                level_key = level.lower()
+                if level_key not in data:
+                    level_key = level.upper()
                 
-            return days_data.get(f"day_{day}", [])
+                level_data = data.get(level_key, {})
+                
+                # 'days' lug'atining ichidan kerakli kunni olish
+                if isinstance(level_data, dict) and "days" in level_data:
+                    days_data = level_data.get("days", {})
+                elif isinstance(level_data, dict):
+                    days_data = level_data
+                else:
+                    days_data = {}
+                    
+                return days_data.get(f"day_{day}", [])
+        except Exception as e:
+            print(f"JSON o'qishda xatolik: {e}")
+            return []
     return []
 
 # ----------------- FSM NIZOMLARI -----------------
@@ -184,7 +198,6 @@ async def books_handler(message: Message):
 async def send_pdf_book(callback: CallbackQuery):
     book_code = callback.data.split("_")[1]
     
-    # Agar fayllarni loyihangiz papkasiga saqlasangiz:
     file_map = {
         "a1": "books/schritte_a1.pdf",
         "a2": "books/menschen_a2.pdf",
@@ -197,7 +210,6 @@ async def send_pdf_book(callback: CallbackQuery):
         pdf_file = FSInputFile(filepath)
         await callback.message.answer_document(document=pdf_file, caption="📚 Marhamat, kitobingiz PDF formati.")
     else:
-        # Fayl loyiha papkasida bo me'mor bo'lmasa, quyidagicha xabar beradi:
         await callback.answer("⚠️ PDF fayl serverga hali joylanmagan. Papkaga faylni joylang.", show_alert=True)
         
     await callback.answer()
