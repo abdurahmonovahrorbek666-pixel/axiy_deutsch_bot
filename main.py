@@ -13,14 +13,13 @@ from aiogram.types import (
     PollAnswer
 )
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiohttp import web
 
 # Logging sozlamalari
 logging.basicConfig(level=logging.INFO)
 
-# Telegram Bot Tokeni
+# Render Environment'dan Token va Admin ID ni olish
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8912605806:AAGL2tn2d_g7yXFewWrxjkLFMvU80uHEz6k")
-
-# Admin Telegram ID (xohlasangiz o'zingizning ID'ingizni yozing)
 ADMIN_ID_RAW = os.environ.get("ADMIN_ID", "0")
 ADMIN_ID = int(ADMIN_ID_RAW) if ADMIN_ID_RAW.isdigit() else 0
 
@@ -30,6 +29,10 @@ dp = Dispatcher(storage=MemoryStorage())
 # Foydalanuvchilar va aktiv testlar xotirasi
 users_db = {}
 active_polls = {}
+
+# Render Web Service portini aldash uchun sodda xabar
+async def handle_ping(request):
+    return web.Response(text="Bot is running smoothly!")
 
 # Lug'at faylini (words.json) yuklash
 def load_words():
@@ -338,8 +341,21 @@ async def handle_poll_answer(poll_answer: PollAnswer):
 
 # Asosiy ishga tushirish funksiyasi
 async def main():
-    logging.info("Bot yangi token bilan ishga tushmoqda...")
+    logging.info("Bot ishga tushmoqda...")
     await bot.delete_webhook(drop_pending_updates=True)
+    
+    # Render uchun HTTP serverni orqa fonda ishga tushirish
+    app = web.Application()
+    app.router.add_get('/', handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    logging.info(f"Dummy Web Server {port}-portda ishga tushdi.")
+    
+    # Telegram bot pollingni boshlash
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
