@@ -4,7 +4,7 @@ import json
 import sqlite3
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
@@ -68,10 +68,9 @@ def update_user_day(user_id: int, level: str, next_day: int):
 
 init_db()
 
-# ----------------- YANGI YANGLANGAN JSON O'QISH FUNKSIYASI -----------------
+# ----------------- JSON O'QISH FUNKSIYASI -----------------
 
 def load_words_data(level: str, day: int):
-    # Dastur avval words.json, u bo'lmasa words_a1.json faylini izlaydi
     filenames = ["words.json", "words_a1.json"]
     filename = None
     
@@ -85,14 +84,12 @@ def load_words_data(level: str, day: int):
             with open(filename, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 
-                # Darajani aniqlash (a1 yoki A1)
                 level_key = level.lower()
                 if level_key not in data:
                     level_key = level.upper()
                 
                 level_data = data.get(level_key, {})
                 
-                # 'days' lug'atining ichidan kerakli kunni olish
                 if isinstance(level_data, dict) and "days" in level_data:
                     days_data = level_data.get("days", {})
                 elif isinstance(level_data, dict):
