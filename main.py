@@ -26,30 +26,56 @@ ADMIN_ID = int(ADMIN_ID_RAW) if ADMIN_ID_RAW.isdigit() else 0
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-# Foydalanuvchilar va aktiv testlar xotirasi
-users_db = {}
+# Fayl nomlari
+WORDS_FILE = "words.json"
+USERS_DB_FILE = "users_db.json"
+
+# Aktiv testlar xotirasi (Vaqtinchalik)
 active_polls = {}
 
-# Render Web Service uchun ping nuqtasi
-async def handle_ping(request):
-    return web.Response(text="Bot is running smoothly!")
+# --- BAZA BILAN ISHLASH (JSON FAYLGA SAQLASH) ---
+
+def load_users_db() -> dict:
+    """Foydalanuvchilar progressini fayldan o'qish"""
+    if os.path.exists(USERS_DB_FILE):
+        try:
+            with open(USERS_DB_FILE, "r", encoding="utf-8") as f:
+                # JSON kalitlari har doim string bo'ladi, int ga o'giramiz
+                data = json.load(f)
+                return {int(k): v for k, v in data.items()}
+        except Exception as e:
+            logging.error(f"{USERS_DB_FILE} ni o'qishda xatolik: {e}")
+            return {}
+    return {}
+
+def save_users_db(users_data: dict):
+    """Foydalanuvchilar progressini faylga saqlash"""
+    try:
+        with open(USERS_DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(users_data, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        logging.error(f"{USERS_DB_FILE} ga saqlashda xatolik: {e}")
+
+# Ishga tushganda foydalanuvchilar bazasini xotiraga yuklash
+users_db = load_users_db()
 
 # Lug'at faylini (words.json) yuklash
 def load_words():
     try:
-        if os.path.exists("words.json"):
-            with open("words.json", "r", encoding="utf-8") as f:
+        if os.path.exists(WORDS_FILE):
+            with open(WORDS_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         else:
-            logging.error("Xatolik: words.json fayli topilmadi!")
+            logging.error(f"Xatolik: {WORDS_FILE} fayli topilmadi!")
             return {}
     except Exception as e:
-        logging.error(f"words.json faylini o'qishda xatolik: {e}")
+        logging.error(f"{WORDS_FILE} faylini o'qishda xatolik: {e}")
         return {}
 
 words_data = load_words()
 
-def get_user_data(user_id, username):
+def get_user_data(user_id: int, username: str) -> dict:
+    """Foydalanuvchi ma'lumotlarini olish va mavjud bo'lmasa saqlash"""
     if user_id not in users_db:
         users_db[user_id] = {
             "username": username or "Foydalanuvchi",
@@ -59,7 +85,18 @@ def get_user_data(user_id, username):
             "b2": 1,
             "scores": {}
         }
+        save_users_db(users_db)
+    else:
+        # Username yangilangan bo'lsa yangilab qo'yamiz
+        if username and users_db[user_id].get("username") != username:
+            users_db[user_id]["username"] = username
+            save_users_db(users_db)
+            
     return users_db[user_id]
+
+# Render Web Service uchun ping nuqtasi
+async def handle_ping(request):
+    return web.Response(text="Bot is running smoothly!")
 
 # Asosiy menyu
 def main_keyboard():
@@ -162,7 +199,9 @@ async def show_days(callback: CallbackQuery):
     buttons = []
     row = []
     
-    total_days = max(len(level_days), 5)
+    # words.json dagi mavjud kunlar sonini aniqlash (kamida 10 kun qilib belgilaymiz)
+    total_days = max(len(level_days), 10)
+    
     for day_num in range(1, total_days + 1):
         day_key = f"day_{day_num}"
         
@@ -211,7 +250,7 @@ async def back_to_levels(callback: CallbackQuery):
     )
     await callback.message.edit_text("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
 
-# Lug'atni ko'rsatish (Tuzatilgan qism)
+# Lug'atni ko'rsatish
 @dp.callback_query(F.data.startswith("viewday_"))
 async def view_day_words(callback: CallbackQuery):
     await callback.answer()
@@ -283,6 +322,7 @@ async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int,
         if percentage >= 80:
             if user.get(level, 1) == current_day_num:
                 user[level] = current_day_num + 1
+                save_users_db(users_db)  # BAZAGA SAQLASH: Keyingi kunni ochib saqlaymiz
             result_text += f"🎉 <b>Tabriklaymiz! 80% dan yuqori ball to'pladingiz. {current_day_num + 1}-kun ochildi!</b>"
         else:
             result_text += f"⚠️ <i>Keyingi kunni ochish uchun kamida 80% to'plashingiz kerak. Qayta urinib ko'ring!</i>"
@@ -315,7 +355,7 @@ async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int,
         "correct_option": item["correct"]
     }
 
-# Testni boshlash (Tuzatilgan qism)
+# Testni boshlash
 @dp.callback_query(F.data.startswith("startquiz_"))
 async def start_quiz(callback: CallbackQuery):
     await callback.answer()
