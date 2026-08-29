@@ -4,7 +4,7 @@ import json
 import sqlite3
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
@@ -37,6 +37,9 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_progress (
             user_id INTEGER PRIMARY KEY,
+            first_name TEXT,
+            username TEXT,
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             a1_day INTEGER DEFAULT 1,
             a2_day INTEGER DEFAULT 1,
             b1_day INTEGER DEFAULT 1,
@@ -46,18 +49,33 @@ def init_db():
     conn.commit()
     conn.close()
 
+def add_or_update_user(user_id: int, first_name: str, username: str):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM user_progress WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    if not row:
+        cursor.execute(
+            "INSERT INTO user_progress (user_id, first_name, username) VALUES (?, ?, ?)",
+            (user_id, first_name, username)
+        )
+    else:
+        cursor.execute(
+            "UPDATE user_progress SET first_name = ?, username = ? WHERE user_id = ?",
+            (first_name, username, user_id)
+        )
+    conn.commit()
+    conn.close()
+
 def get_user_day(user_id: int, level: str = "a1") -> int:
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute(f"SELECT {level.lower()}_day FROM user_progress WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
-    if not row:
-        cursor.execute("INSERT INTO user_progress (user_id) VALUES (?)", (user_id,))
-        conn.commit()
-        conn.close()
-        return 1
     conn.close()
-    return row[0]
+    if row and row[0] is not None:
+        return row[0]
+    return 1
 
 def update_user_day(user_id: int, level: str, next_day: int):
     conn = sqlite3.connect(DB_FILE)
@@ -143,12 +161,57 @@ def get_books_keyboard():
 
 @dp.message(CommandStart())
 async def start_handler(message: Message) -> None:
-    user_name = message.from_user.first_name if message.from_user else "Foydalanuvchi"
+    user = message.from_user
+    if user:
+        add_or_update_user(user.id, user.first_name, user.username or "Yo'q")
+    
+    user_name = user.first_name if user else "Foydalanuvchi"
     await message.answer(
         f"Hallo, <b>{user_name}</b>!\n\nNemis tili kunlik lug'at va test tizimiga xush kelibsiz!",
         parse_mode="HTML",
         reply_markup=main_keyboard
     )
+
+# ----------------- ADMIN PANEL BUYRUQLARI -----------------
+
+@dp.message(Command("stats"))
+@dp.message(F.text == "/stats")
+async def admin_stats(message: Message):
+    if ADMIN_ID and str(message.from_user.id) != str(ADMIN_ID):
+        return
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM user_progress")
+    total_users = cursor.fetchone()[0]
+    conn.close()
+
+    await message.answer(f"📊 <b>Bot foydalanuvchilari soni:</b> {total_users} ta", parse_mode="HTML")
+
+@dp.message(Command("users"))
+@dp.message(F.text == "/users")
+async def admin_users_list(message: Message):
+    if ADMIN_ID and str(message.from_user.id) != str(ADMIN_ID):
+        return
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, first_name, username, joined_at FROM user_progress ORDER BY joined_at DESC LIMIT 50")
+    users = cursor.fetchall()
+    conn.close()
+
+    if not users:
+        await message.answer("Hali hech kim botdan foydalanmadi.")
+        return
+
+    text = "👥 <b>So'nggi foydalanuvchilar ro'yxati (max 50 ta):</b>\n\n"
+    for idx, (u_id, fname, uname, joined) in enumerate(users, 1):
+        username_str = f"@{uname}" if uname != "Yo'q" else "Username yo'q"
+        text += f"{idx}. <b>{fname}</b> ({username_str}) - ID: <code>{u_id}</code>\n"
+
+    await message.answer(text, parse_mode="HTML")
+
+# ----------------- USER HANDLERLARI -----------------
 
 @dp.message(F.text == "📊 Natijalarim")
 async def show_results(message: Message):
