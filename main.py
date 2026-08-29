@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import asyncio
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.types import (
@@ -12,25 +13,27 @@ from aiogram.types import (
     PollAnswer
 )
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm.context import FSMContext
 
 # Logging sozlamalari
 logging.basicConfig(level=logging.INFO)
 
-# Token va Admin ID
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
+# Render Environment'dan Token va Admin ID ni olish
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+ADMIN_ID_RAW = os.environ.get("ADMIN_ID", "0")
+ADMIN_ID = int(ADMIN_ID_RAW) if ADMIN_ID_RAW.isdigit() else 0
+
+if not BOT_TOKEN:
+    logging.error("CRITICAL: BOT_TOKEN Environment variable topilmadi! Render'da Environment bo'limini tekshiring.")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-# Foydalanuvchilar ma'lumotlari (xotirada saqlanadi)
+# Foydalanuvchilar ma'lumotlari xotirasi
 # Structure: users_db[user_id] = {"username": str, "a1": current_unlocked_day, ...}
 users_db = {}
-# Faol viktorinalar
 active_polls = {}
 
-# Lug'at faylini yuklash
+# Lug'at faylini (words.json) yuklash
 def load_words():
     try:
         with open("words.json", "r", encoding="utf-8") as f:
@@ -53,7 +56,7 @@ def get_user_data(user_id, username):
         }
     return users_db[user_id]
 
-# Main Keyboard
+# Asosiy menyu tugmalari
 def main_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
@@ -63,7 +66,7 @@ def main_keyboard():
         resize_keyboard=True
     )
 
-# Start komandasi
+# /start komandasi
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     user_id = message.from_user.id
@@ -77,19 +80,18 @@ async def start_cmd(message: types.Message):
     )
     await message.answer(welcome_text, parse_mode="HTML", reply_markup=main_keyboard())
 
-# Admin: /stats komandasi
+# Admin buyruqlari
 @dp.message(Command("stats"))
 async def stats_cmd(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
+    if message.from_user.id == ADMIN_ID and ADMIN_ID != 0:
         count = len(users_db)
-        await message.answer(f"📊 <b>Bot statistiikasi:</b>\n\nJamlangan foydalanuvchilar soni: <b>{count}</b> ta", parse_mode="HTML")
+        await message.answer(f"📊 <b>Bot statistikasi:</b>\n\nJamlangan foydalanuvchilar soni: <b>{count}</b> ta", parse_mode="HTML")
     else:
         await message.answer("⚠️ Bu buyruq faqat bot admini uchun!")
 
-# Admin: /users komandasi
 @dp.message(Command("users"))
 async def users_cmd(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
+    if message.from_user.id == ADMIN_ID and ADMIN_ID != 0:
         if not users_db:
             await message.answer("Hozircha foydalanuvchilar yo'q.")
             return
@@ -100,7 +102,7 @@ async def users_cmd(message: types.Message):
     else:
         await message.answer("⚠️ Bu buyruq faqat bot admini uchun!")
 
-# Natijalarim tugmasi
+# Natijalarim bo'limi
 @dp.message(F.text == "📊 Natijalarim")
 async def my_stats(message: types.Message):
     user = get_user_data(message.from_user.id, message.from_user.username)
@@ -118,12 +120,12 @@ async def my_stats(message: types.Message):
 @dp.message(F.text == "ℹ️ Bot haqida")
 async def about_bot(message: types.Message):
     await message.answer(
-        "🇩🇪 <b>Deutsch mit Ahrorbek</b> — Nemis tilini oson va samarli o'rganish loyihasi.\n\n"
+        "🇩🇪 <b>Deutsch mit Ahrorbek</b> — Nemis tilini oson va samarali o'rganish loyihasi.\n\n"
         "Botingiz orqali har kuni yangi so'zlarni yodlab, testlar orqali bilimlaringizni mustahkamlab borasiz.",
         parse_mode="HTML"
     )
 
-# Kitoblar
+# Kitoblar bo'limi
 @dp.message(F.text == "📖 Nemis tili Kitoblari (PDF)")
 async def pdf_books(message: types.Message):
     await message.answer("📚 Tez orada ushbu bo'limga B1 va A2 darajadagi eng saralangan nemis tili kitoblari joylanadi!")
@@ -141,7 +143,7 @@ async def show_levels(message: types.Message):
     )
     await message.answer("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
 
-# Kunlar ro'yxatini chiqarish (Unlock Tizimi)
+# Kunlar menyusi (Bosqichma-bosqich / Unlock Tizimi)
 @dp.callback_query(F.data.startswith("showdays_"))
 async def show_days(callback: CallbackQuery):
     level = callback.data.split("_")[1]
@@ -154,12 +156,13 @@ async def show_days(callback: CallbackQuery):
     buttons = []
     row = []
     
-    # Mavjud barcha kunlar uchun tugma hosil qilish
-    for day_num in range(1, len(level_days) + 1):
+    # words.json ichidagi barcha kunlarni dinamik chiqarish
+    total_days = max(len(level_days), 5) # kamida 5 kunni ko'rsatadi
+    for day_num in range(1, total_days + 1):
         day_key = f"day_{day_num}"
         
         if day_num <= unlocked_day:
-            # Ochiq kunlar (O'tilgan yoki hozirgi ochiq kun)
+            # Ochiq kunlar (topshirilgan va hozirgi ochilgan kun)
             icon = "✅" if day_num < unlocked_day else "📅"
             btn_text = f"{icon} {day_num}-kun"
             cb_data = f"viewday_{level}_{day_key}"
@@ -186,13 +189,13 @@ async def show_days(callback: CallbackQuery):
     )
     await callback.answer()
 
-# Qulflangan kun bosilganda ogohlantirish
+# Qulflangan kun bosilganda pop-up xabari
 @dp.callback_query(F.data.startswith("locked_"))
 async def locked_day_handler(callback: CallbackQuery):
     day_num = callback.data.split("_")[1]
     await callback.answer(f"⛔️ {day_num}-kun yopiq! Davom etish uchun oldingi kun testini muvaffaqiyatli topshiring.", show_alert=True)
 
-# Orqaga qaytish handler
+# Orqaga qaytish
 @dp.callback_query(F.data == "back_to_levels")
 async def back_to_levels(callback: CallbackQuery):
     kb = InlineKeyboardMarkup(
@@ -206,7 +209,7 @@ async def back_to_levels(callback: CallbackQuery):
     await callback.message.edit_text("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
     await callback.answer()
 
-# Zamonaviy lug'at matnini ko'rsatish
+# Kunlik lug'atni ko'rsatish
 @dp.callback_query(F.data.startswith("viewday_"))
 async def view_day_words(callback: CallbackQuery):
     _, level, day_key = callback.data.split("_")
@@ -215,10 +218,10 @@ async def view_day_words(callback: CallbackQuery):
     questions = words_data.get(level, {}).get("days", {}).get(day_key, [])
     
     if not questions:
-        await callback.answer(f"⚠️ Bu kun uchun lug'at hali joylanmagan.", show_alert=True)
+        await callback.answer(f"⚠️ {day_num}-kun uchun lug'at hali kiritilmagan.", show_alert=True)
         return
 
-    # Zamonaviy UI dizayni
+    # Chiroyli lug'at ko'rinishi
     vocab_text = (
         f"✨ <b>{level.upper()} DARAJA — {day_num}-KUN LUG'ATI</b> ✨\n"
         f"───────────────\n"
@@ -261,7 +264,7 @@ async def view_day_words(callback: CallbackQuery):
     await callback.message.edit_text(vocab_text, parse_mode="HTML", reply_markup=start_quiz_kb)
     await callback.answer()
 
-# Viktorina (Quiz) yuborish
+# Test/Viktorina yuborish
 @dp.callback_query(F.data.startswith("startquiz_"))
 async def start_quiz(callback: CallbackQuery):
     _, level, day_key, q_idx, correct_count = callback.data.split("_")
@@ -270,7 +273,7 @@ async def start_quiz(callback: CallbackQuery):
     
     questions = words_data.get(level, {}).get("days", {}).get(day_key, [])
     
-    # Viktorina yakunlandi
+    # Test tugaganda natijani hisoblash
     if q_idx >= len(questions):
         total = len(questions)
         percentage = int((correct_count / total) * 100) if total > 0 else 0
@@ -280,7 +283,7 @@ async def start_quiz(callback: CallbackQuery):
         
         result_text = f"🏁 <b>Test yakunlandi!</b>\n\nNatijangiz: <b>{correct_count}/{total}</b> ({percentage}%)\n\n"
         
-        # 80% va undan yuqori natija bo'lsa keyingi kun ochiladi
+        # 80% to'plansa keyingi kun ochiladi
         if percentage >= 80:
             if user.get(level, 1) == current_day_num:
                 user[level] = current_day_num + 1
@@ -307,7 +310,6 @@ async def start_quiz(callback: CallbackQuery):
         is_anonymous=False
     )
     
-    # Viktorina holatini saqlash
     active_polls[poll_msg.poll.id] = {
         "user_id": callback.from_user.id,
         "level": level,
@@ -331,7 +333,6 @@ async def handle_poll_answer(poll_answer: PollAnswer):
             
         next_idx = data["q_idx"] + 1
         
-        # Keyingi savolga o'tish uchun callback chaqiramiz
         fake_callback = types.CallbackQuery(
             id="",
             from_user=poll_answer.user,
@@ -347,9 +348,8 @@ async def handle_poll_answer(poll_answer: PollAnswer):
 
 # Asosiy ishga tushirish funksiyasi
 async def main():
-    logging.info("Bot muvaffaqiyatli ishga tushdi...")
+    logging.info("Bot ishga tushmoqda...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
