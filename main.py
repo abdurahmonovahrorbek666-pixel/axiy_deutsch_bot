@@ -30,7 +30,7 @@ dp = Dispatcher(storage=MemoryStorage())
 users_db = {}
 active_polls = {}
 
-# Render Web Service uchun sog'lomlik tekshiruv nuqtasi (Ping)
+# Render Web Service uchun ping nuqtasi
 async def handle_ping(request):
     return web.Response(text="Bot is running smoothly!")
 
@@ -117,7 +117,7 @@ async def my_stats(message: types.Message):
         f"🟡 <b>A2 Daraja:</b> Ochiq: {user['a2']}-kun\n"
         f"🟠 <b>B1 Daraja:</b> Ochiq: {user['b1']}-kun\n"
         f"🔴 <b>B2 Daraja:</b> Ochiq: {user['b2']}-kun\n\n"
-        f"💡 <i>Eslatma: Keyingi kunga o'tish uchun testlardan kamida 80% natija ko'rsatishingiz kerak.</i>"
+        f"💡 <i>Eslatma: Keyingi kunga o'tish uchun testlarda kamida 80% natija ko'rsatishingiz kerak.</i>"
     )
     await message.answer(text, parse_mode="HTML")
 
@@ -133,7 +133,7 @@ async def about_bot(message: types.Message):
 # Kitoblar bo'limi
 @dp.message(F.text == "📖 Nemis tili Kitoblari (PDF)")
 async def pdf_books(message: types.Message):
-    await message.answer("📚 Tez orada ushbu bo'limga B1 va A2 darajadagi eng saralangan nemis tili kitoblari joylanadi!")
+    await message.answer("📚 Tez orada ushbu bo'limga saralangan nemis tili kitoblari joylanadi!")
 
 # Darajalar menyusi
 @dp.message(F.text == "📚 Kunlik Lug'at va Test")
@@ -148,7 +148,7 @@ async def show_levels(message: types.Message):
     )
     await message.answer("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
 
-# Kunlar menyusi (Unlock Tizimi)
+# Kunlar menyusi
 @dp.callback_query(F.data.startswith("showdays_"))
 async def show_days(callback: CallbackQuery):
     await callback.answer()
@@ -191,11 +191,11 @@ async def show_days(callback: CallbackQuery):
         reply_markup=kb
     )
 
-# Qulflangan kun bosilganda
+# Qulflangan kun
 @dp.callback_query(F.data.startswith("locked_"))
 async def locked_day_handler(callback: CallbackQuery):
     day_num = callback.data.split("_")[1]
-    await callback.answer(f"⛔️ {day_num}-kun yopiq! Davom etish uchun oldingi kun testini muvaffaqiyatli topshiring.", show_alert=True)
+    await callback.answer(f"⛔️ {day_num}-kun yopiq! Oldingi kun testini kamida 80% ga topshiring.", show_alert=True)
 
 # Orqaga qaytish
 @dp.callback_query(F.data == "back_to_levels")
@@ -211,18 +211,20 @@ async def back_to_levels(callback: CallbackQuery):
     )
     await callback.message.edit_text("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
 
-# Lug'atni ko'rsatish
+# Lug'atni ko'rsatish (Tuzatilgan qism)
 @dp.callback_query(F.data.startswith("viewday_"))
 async def view_day_words(callback: CallbackQuery):
     await callback.answer()
     
-    _, level, day_key = callback.data.split("_")
-    day_num = day_key.split("_")[1]
+    parts = callback.data.split("_")
+    level = parts[1]                     # masalan: 'a1'
+    day_key = f"{parts[2]}_{parts[3]}"   # masalan: 'day_1'
+    day_num = parts[3]                   # masalan: '1'
     
     questions = words_data.get(level, {}).get("days", {}).get(day_key, [])
     
     if not questions:
-        await callback.message.answer(f"⚠️ {day_num}-kun uchun lug'at hali kiritilmagan yoki fayl yuklanmagan.")
+        await callback.message.answer(f"⚠️ {day_num}-kun uchun lug'at topilmadi yoki words.json faylida xatolik bor.")
         return
 
     vocab_text = (
@@ -266,7 +268,7 @@ async def view_day_words(callback: CallbackQuery):
 
     await callback.message.edit_text(vocab_text, parse_mode="HTML", reply_markup=start_quiz_kb)
 
-# Keyingi savolni yuborish funksiyasi
+# Keyingi savolni yuborish
 async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int, correct_count: int):
     questions = words_data.get(level, {}).get("days", {}).get(day_key, [])
     
@@ -313,16 +315,21 @@ async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int,
         "correct_option": item["correct"]
     }
 
-# Testni boshlash (Callback bo'yicha)
+# Testni boshlash (Tuzatilgan qism)
 @dp.callback_query(F.data.startswith("startquiz_"))
 async def start_quiz(callback: CallbackQuery):
     await callback.answer()
-    _, level, day_key, q_idx, correct_count = callback.data.split("_")
-    user_id = callback.from_user.id
     
-    await send_next_question(user_id, level, day_key, int(q_idx), int(correct_count))
+    parts = callback.data.split("_")
+    level = parts[1]
+    day_key = f"{parts[2]}_{parts[3]}"
+    q_idx = int(parts[4])
+    correct_count = int(parts[5])
+    
+    user_id = callback.from_user.id
+    await send_next_question(user_id, level, day_key, q_idx, correct_count)
 
-# Test javoblarini ushlab olish (PollAnswer)
+# Test javobini qabul qilish
 @dp.poll_answer()
 async def handle_poll_answer(poll_answer: PollAnswer):
     poll_id = poll_answer.poll_id
@@ -344,12 +351,11 @@ async def handle_poll_answer(poll_answer: PollAnswer):
             correct_count=correct_count
         )
 
-# Asosiy ishga tushirish funksiyasi
+# Main runner
 async def main():
     logging.info("Bot ishga tushmoqda...")
     await bot.delete_webhook(drop_pending_updates=True)
     
-    # Render Web Service uchun orqa fonda HTTP server
     app = web.Application()
     app.router.add_get('/', handle_ping)
     runner = web.AppRunner(app)
@@ -360,7 +366,6 @@ async def main():
     await site.start()
     logging.info(f"Dummy Web Server {port}-portda ishga tushdi.")
     
-    # Telegram bot pollingni boshlash
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
