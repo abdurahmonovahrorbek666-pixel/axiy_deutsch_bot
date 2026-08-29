@@ -17,19 +17,17 @@ from aiogram.fsm.storage.memory import MemoryStorage
 # Logging sozlamalari
 logging.basicConfig(level=logging.INFO)
 
-# Render Environment'dan Token va Admin ID ni olish
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+# Telegram Bot Tokeni
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8912605806:AAGL2tn2d_g7yXFewWrxjkLFMvU80uHEz6k")
+
+# Admin Telegram ID (xohlasangiz o'zingizning ID'ingizni yozing)
 ADMIN_ID_RAW = os.environ.get("ADMIN_ID", "0")
 ADMIN_ID = int(ADMIN_ID_RAW) if ADMIN_ID_RAW.isdigit() else 0
-
-if not BOT_TOKEN:
-    logging.error("CRITICAL: BOT_TOKEN Environment variable topilmadi! Render'da Environment bo'limini tekshiring.")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-# Foydalanuvchilar ma'lumotlari xotirasi
-# Structure: users_db[user_id] = {"username": str, "a1": current_unlocked_day, ...}
+# Foydalanuvchilar va aktiv testlar xotirasi
 users_db = {}
 active_polls = {}
 
@@ -56,7 +54,7 @@ def get_user_data(user_id, username):
         }
     return users_db[user_id]
 
-# Asosiy menyu tugmalari
+# Asosiy menyu
 def main_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
@@ -66,7 +64,7 @@ def main_keyboard():
         resize_keyboard=True
     )
 
-# /start komandasi
+# /start buyrug'i
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     user_id = message.from_user.id
@@ -108,10 +106,10 @@ async def my_stats(message: types.Message):
     user = get_user_data(message.from_user.id, message.from_user.username)
     text = (
         f"📊 <b>Sizning umumiy o'zlashtirish ko'rsatkichingiz:</b>\n\n"
-        f"🟢 <b>A1 Daraja:</b> Ochiq: {user['a1']}-kun/20\n"
-        f"🟡 <b>A2 Daraja:</b> Ochiq: {user['a2']}-kun/20\n"
-        f"🟠 <b>B1 Daraja:</b> Ochiq: {user['b1']}-kun/20\n"
-        f"🔴 <b>B2 Daraja:</b> Ochiq: {user['b2']}-kun/20\n\n"
+        f"🟢 <b>A1 Daraja:</b> Ochiq: {user['a1']}-kun\n"
+        f"🟡 <b>A2 Daraja:</b> Ochiq: {user['a2']}-kun\n"
+        f"🟠 <b>B1 Daraja:</b> Ochiq: {user['b1']}-kun\n"
+        f"🔴 <b>B2 Daraja:</b> Ochiq: {user['b2']}-kun\n\n"
         f"💡 <i>Eslatma: Keyingi kunga o'tish uchun testlardan kamida 80% natija ko'rsatishingiz kerak.</i>"
     )
     await message.answer(text, parse_mode="HTML")
@@ -130,7 +128,7 @@ async def about_bot(message: types.Message):
 async def pdf_books(message: types.Message):
     await message.answer("📚 Tez orada ushbu bo'limga B1 va A2 darajadagi eng saralangan nemis tili kitoblari joylanadi!")
 
-# Darajalar menyusini ko'rsatish
+# Darajalar menyusi
 @dp.message(F.text == "📚 Kunlik Lug'at va Test")
 async def show_levels(message: types.Message):
     kb = InlineKeyboardMarkup(
@@ -143,7 +141,7 @@ async def show_levels(message: types.Message):
     )
     await message.answer("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
 
-# Kunlar menyusi (Bosqichma-bosqich / Unlock Tizimi)
+# Kunlar menyusi (Unlock Tizimi)
 @dp.callback_query(F.data.startswith("showdays_"))
 async def show_days(callback: CallbackQuery):
     level = callback.data.split("_")[1]
@@ -156,18 +154,15 @@ async def show_days(callback: CallbackQuery):
     buttons = []
     row = []
     
-    # words.json ichidagi barcha kunlarni dinamik chiqarish
-    total_days = max(len(level_days), 5) # kamida 5 kunni ko'rsatadi
+    total_days = max(len(level_days), 5)
     for day_num in range(1, total_days + 1):
         day_key = f"day_{day_num}"
         
         if day_num <= unlocked_day:
-            # Ochiq kunlar (topshirilgan va hozirgi ochilgan kun)
             icon = "✅" if day_num < unlocked_day else "📅"
             btn_text = f"{icon} {day_num}-kun"
             cb_data = f"viewday_{level}_{day_key}"
         else:
-            # Qulflangan yopiq kunlar
             btn_text = f"🔒 {day_num}-kun"
             cb_data = f"locked_{day_num}"
             
@@ -189,7 +184,7 @@ async def show_days(callback: CallbackQuery):
     )
     await callback.answer()
 
-# Qulflangan kun bosilganda pop-up xabari
+# Qulflangan kun bosilganda
 @dp.callback_query(F.data.startswith("locked_"))
 async def locked_day_handler(callback: CallbackQuery):
     day_num = callback.data.split("_")[1]
@@ -209,7 +204,7 @@ async def back_to_levels(callback: CallbackQuery):
     await callback.message.edit_text("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
     await callback.answer()
 
-# Kunlik lug'atni ko'rsatish
+# Lug'atni ko'rsatish
 @dp.callback_query(F.data.startswith("viewday_"))
 async def view_day_words(callback: CallbackQuery):
     _, level, day_key = callback.data.split("_")
@@ -221,7 +216,6 @@ async def view_day_words(callback: CallbackQuery):
         await callback.answer(f"⚠️ {day_num}-kun uchun lug'at hali kiritilmagan.", show_alert=True)
         return
 
-    # Chiroyli lug'at ko'rinishi
     vocab_text = (
         f"✨ <b>{level.upper()} DARAJA — {day_num}-KUN LUG'ATI</b> ✨\n"
         f"───────────────\n"
@@ -264,26 +258,18 @@ async def view_day_words(callback: CallbackQuery):
     await callback.message.edit_text(vocab_text, parse_mode="HTML", reply_markup=start_quiz_kb)
     await callback.answer()
 
-# Test/Viktorina yuborish
-@dp.callback_query(F.data.startswith("startquiz_"))
-async def start_quiz(callback: CallbackQuery):
-    _, level, day_key, q_idx, correct_count = callback.data.split("_")
-    q_idx = int(q_idx)
-    correct_count = int(correct_count)
-    
+# Keyingi savolni yuborish funksiyasi
+async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int, correct_count: int):
     questions = words_data.get(level, {}).get("days", {}).get(day_key, [])
     
-    # Test tugaganda natijani hisoblash
     if q_idx >= len(questions):
         total = len(questions)
         percentage = int((correct_count / total) * 100) if total > 0 else 0
-        user_id = callback.from_user.id
-        user = get_user_data(user_id, callback.from_user.username)
+        user = get_user_data(user_id, "")
         current_day_num = int(day_key.split("_")[1])
         
         result_text = f"🏁 <b>Test yakunlandi!</b>\n\nNatijangiz: <b>{correct_count}/{total}</b> ({percentage}%)\n\n"
         
-        # 80% to'plansa keyingi kun ochiladi
         if percentage >= 80:
             if user.get(level, 1) == current_day_num:
                 user[level] = current_day_num + 1
@@ -297,12 +283,12 @@ async def start_quiz(callback: CallbackQuery):
                 [InlineKeyboardButton(text="📚 Kunlar ro'yxatiga o'tish", callback_data=f"showdays_{level}")]
             ]
         )
-        await callback.message.answer(result_text, parse_mode="HTML", reply_markup=next_kb)
-        await callback.answer()
+        await bot.send_message(chat_id=user_id, text=result_text, parse_mode="HTML", reply_markup=next_kb)
         return
 
     item = questions[q_idx]
-    poll_msg = await callback.message.answer_poll(
+    poll_msg = await bot.send_poll(
+        chat_id=user_id,
         question=f"[{q_idx + 1}/{len(questions)}] '{item['word']}' so'zining ma'nosi nima?",
         options=item["options"],
         correct_option_id=item["correct"],
@@ -311,16 +297,24 @@ async def start_quiz(callback: CallbackQuery):
     )
     
     active_polls[poll_msg.poll.id] = {
-        "user_id": callback.from_user.id,
+        "user_id": user_id,
         "level": level,
         "day_key": day_key,
         "q_idx": q_idx,
         "correct_count": correct_count,
         "correct_option": item["correct"]
     }
-    await callback.answer()
 
-# Viktorina javoblarini qabul qilish
+# Testni boshlash (Callback bo'yicha)
+@dp.callback_query(F.data.startswith("startquiz_"))
+async def start_quiz(callback: CallbackQuery):
+    _, level, day_key, q_idx, correct_count = callback.data.split("_")
+    user_id = callback.from_user.id
+    
+    await callback.answer()
+    await send_next_question(user_id, level, day_key, int(q_idx), int(correct_count))
+
+# Test javoblarini ushlab olish (PollAnswer)
 @dp.poll_answer()
 async def handle_poll_answer(poll_answer: PollAnswer):
     poll_id = poll_answer.poll_id
@@ -328,27 +322,24 @@ async def handle_poll_answer(poll_answer: PollAnswer):
         data = active_polls.pop(poll_id)
         selected_option = poll_answer.option_ids[0]
         
+        correct_count = data["correct_count"]
         if selected_option == data["correct_option"]:
-            data["correct_count"] += 1
+            correct_count += 1
             
         next_idx = data["q_idx"] + 1
         
-        fake_callback = types.CallbackQuery(
-            id="",
-            from_user=poll_answer.user,
-            chat_instance="",
-            message=types.Message(
-                message_id=0,
-                date=None,
-                chat=types.Chat(id=poll_answer.user.id, type="private")
-            ),
-            data=f"startquiz_{data['level']}_{data['day_key']}_{next_idx}_{data['correct_count']}"
+        await send_next_question(
+            user_id=poll_answer.user.id,
+            level=data["level"],
+            day_key=data["day_key"],
+            q_idx=next_idx,
+            correct_count=correct_count
         )
-        await start_quiz(fake_callback)
 
 # Asosiy ishga tushirish funksiyasi
 async def main():
-    logging.info("Bot ishga tushmoqda...")
+    logging.info("Bot yangi token bilan ishga tushmoqda...")
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
