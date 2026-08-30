@@ -1,1 +1,28 @@
-
+{
+  "tests": {
+    "test_1": [
+      {
+        "question": "Ich ___ aus Tashkent.",
+        "options": ["kommen", "komme", "kommt", "komst"],
+        "correct": 1
+      },
+      {
+        "question": "Wie ___ du?",
+        "options": ["heißt", "heiße", "heißen", "heißt du"],
+        "correct": 0
+      },
+      {
+        "question": "Das ist ___ Buch.",
+        "options": ["ein", "eine", "einen", "eines"],
+        "correct": 0
+      }
+    ],
+    "test_2": [
+      {
+        "question": "Er ___ Fußball.",
+        "options": ["spielt", "spielen", "spiele", "spielst"],
+        "correct": 0
+      }
+    ]
+  }
+}
