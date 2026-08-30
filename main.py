@@ -40,7 +40,6 @@ def load_users_db() -> dict:
     if os.path.exists(USERS_DB_FILE):
         try:
             with open(USERS_DB_FILE, "r", encoding="utf-8") as f:
-                # JSON kalitlari har doim string bo'ladi, int ga o'giramiz
                 data = json.load(f)
                 return {int(k): v for k, v in data.items()}
         except Exception as e:
@@ -56,7 +55,6 @@ def save_users_db(users_data: dict):
     except Exception as e:
         logging.error(f"{USERS_DB_FILE} ga saqlashda xatolik: {e}")
 
-# Ishga tushganda foydalanuvchilar bazasini xotiraga yuklash
 users_db = load_users_db()
 
 # Lug'at faylini (words.json) yuklash
@@ -87,7 +85,6 @@ def get_user_data(user_id: int, username: str) -> dict:
         }
         save_users_db(users_db)
     else:
-        # Username yangilangan bo'lsa yangilab qo'yamiz
         if username and users_db[user_id].get("username") != username:
             users_db[user_id]["username"] = username
             save_users_db(users_db)
@@ -177,32 +174,49 @@ async def pdf_books(message: types.Message):
 async def show_levels(message: types.Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🟢 A1 Daraja (Anfänger)", callback_data="showdays_a1")],
-            [InlineKeyboardButton(text="🟡 A2 Daraja (Grundlegend)", callback_data="showdays_a2")],
-            [InlineKeyboardButton(text="🟠 B1 Daraja (Fortgeschritten)", callback_data="showdays_b1")],
-            [InlineKeyboardButton(text="🔴 B2 Daraja (Selbstständig)", callback_data="showdays_b2")]
+            [InlineKeyboardButton(text="🟢 A1 Daraja (Anfänger)", callback_data="showdays_a1_1")],
+            [InlineKeyboardButton(text="🟡 A2 Daraja (Grundlegend)", callback_data="showdays_a2_1")],
+            [InlineKeyboardButton(text="🟠 B1 Daraja (Fortgeschritten)", callback_data="showdays_b1_1")],
+            [InlineKeyboardButton(text="🔴 B2 Daraja (Selbstständig)", callback_data="showdays_b2_1")]
         ]
     )
     await message.answer("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
 
-# Kunlar menyusi
+# Kunlar menyusi (Sahifalash va barcha kunlarni ko'rsatish bilan)
 @dp.callback_query(F.data.startswith("showdays_"))
 async def show_days(callback: CallbackQuery):
     await callback.answer()
-    level = callback.data.split("_")[1]
+    parts = callback.data.split("_")
+    level = parts[1]
+    page = int(parts[2]) if len(parts) > 2 else 1
+    
     user_id = callback.from_user.id
     user = get_user_data(user_id, callback.from_user.username)
     
     unlocked_day = user.get(level, 1)
     level_days = words_data.get(level, {}).get("days", {})
     
+    # JSON-dagi kunlar soni yoki kamida 30 kun ko'rinishi uchun
+    json_max_day = 0
+    for day_k in level_days.keys():
+        if day_k.startswith("day_"):
+            try:
+                num = int(day_k.split("_")[1])
+                if num > json_max_day:
+                    json_max_day = num
+            except ValueError:
+                pass
+                
+    total_days = max(json_max_day, 30)  # Eng kamida 30 ta kun menyusini shakllantiradi
+    
+    per_page = 10
+    start_day = (page - 1) * per_page + 1
+    end_day = min(start_day + per_page - 1, total_days)
+    
     buttons = []
     row = []
     
-    # words.json dagi mavjud kunlar sonini aniqlash (kamida 10 kun qilib belgilaymiz)
-    total_days = max(len(level_days), 10)
-    
-    for day_num in range(1, total_days + 1):
+    for day_num in range(start_day, end_day + 1):
         day_key = f"day_{day_num}"
         
         if day_num <= unlocked_day:
@@ -220,12 +234,22 @@ async def show_days(callback: CallbackQuery):
     if row:
         buttons.append(row)
         
+    # Sahifalash (Pagination) tugmalari
+    nav_buttons = []
+    if page > 1:
+        nav_buttons.append(InlineKeyboardButton(text="⬅️ Avvalgisi", callback_data=f"showdays_{level}_{page - 1}"))
+    if end_day < total_days:
+        nav_buttons.append(InlineKeyboardButton(text="Keyingisi ➡️", callback_data=f"showdays_{level}_{page + 1}"))
+        
+    if nav_buttons:
+        buttons.append(nav_buttons)
+        
     buttons.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_to_levels")])
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
     
     title = words_data.get(level, {}).get("title", level.upper())
     await callback.message.edit_text(
-        f"<b>{title}</b>\n\nDavom etish uchun ochiq kunni tanlang:",
+        f"<b>{title}</b> (Sahifa {page})\n\nDavom etish uchun ochiq kunni tanlang:",
         parse_mode="HTML",
         reply_markup=kb
     )
@@ -242,10 +266,10 @@ async def back_to_levels(callback: CallbackQuery):
     await callback.answer()
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🟢 A1 Daraja (Anfänger)", callback_data="showdays_a1")],
-            [InlineKeyboardButton(text="🟡 A2 Daraja (Grundlegend)", callback_data="showdays_a2")],
-            [InlineKeyboardButton(text="🟠 B1 Daraja (Fortgeschritten)", callback_data="showdays_b1")],
-            [InlineKeyboardButton(text="🔴 B2 Daraja (Selbstständig)", callback_data="showdays_b2")]
+            [InlineKeyboardButton(text="🟢 A1 Daraja (Anfänger)", callback_data="showdays_a1_1")],
+            [InlineKeyboardButton(text="🟡 A2 Daraja (Grundlegend)", callback_data="showdays_a2_1")],
+            [InlineKeyboardButton(text="🟠 B1 Daraja (Fortgeschritten)", callback_data="showdays_b1_1")],
+            [InlineKeyboardButton(text="🔴 B2 Daraja (Selbstständig)", callback_data="showdays_b2_1")]
         ]
     )
     await callback.message.edit_text("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
@@ -263,7 +287,7 @@ async def view_day_words(callback: CallbackQuery):
     questions = words_data.get(level, {}).get("days", {}).get(day_key, [])
     
     if not questions:
-        await callback.message.answer(f"⚠️ {day_num}-kun uchun lug'at topilmadi yoki words.json faylida xatolik bor.")
+        await callback.message.answer(f"⚠️ {day_num}-kun uchun lug'at hali tayyorlanmagan yoki words.json faylida mavjud emas.")
         return
 
     vocab_text = (
@@ -301,7 +325,7 @@ async def view_day_words(callback: CallbackQuery):
                 text=f"🚀 {day_num}-kun testini boshlash ({len(questions)} savol)", 
                 callback_data=f"startquiz_{level}_{day_key}_0_0"
             )],
-            [InlineKeyboardButton(text="⬅️ Kunlar ro'yxatiga qaytish", callback_data=f"showdays_{level}")]
+            [InlineKeyboardButton(text="⬅️ Kunlar ro'yxatiga qaytish", callback_data=f"showdays_{level}_1")]
         ]
     )
 
@@ -322,7 +346,7 @@ async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int,
         if percentage >= 80:
             if user.get(level, 1) == current_day_num:
                 user[level] = current_day_num + 1
-                save_users_db(users_db)  # BAZAGA SAQLASH: Keyingi kunni ochib saqlaymiz
+                save_users_db(users_db)
             result_text += f"🎉 <b>Tabriklaymiz! 80% dan yuqori ball to'pladingiz. {current_day_num + 1}-kun ochildi!</b>"
         else:
             result_text += f"⚠️ <i>Keyingi kunni ochish uchun kamida 80% to'plashingiz kerak. Qayta urinib ko'ring!</i>"
@@ -330,7 +354,7 @@ async def send_next_question(user_id: int, level: str, day_key: str, q_idx: int,
         next_kb = InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="🔄 Qayta topshirish", callback_data=f"viewday_{level}_{day_key}")],
-                [InlineKeyboardButton(text="📚 Kunlar ro'yxatiga o'tish", callback_data=f"showdays_{level}")]
+                [InlineKeyboardButton(text="📚 Kunlar ro'yxatiga o'tish", callback_data=f"showdays_{level}_1")]
             ]
         )
         await bot.send_message(chat_id=user_id, text=result_text, parse_mode="HTML", reply_markup=next_kb)
