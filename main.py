@@ -19,11 +19,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- SOZLAMALAR ---
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # Bu yerga botingiz tokenini kiriting
-ADMIN_ID = 7203007188  # Sizning Telegram ID'ingiz
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # Telegram Bot Tokeningiz
+ADMIN_ID = 7203007188  # Sizning ID raqamingiz
 
 # GitHub'dagi JSON faylingiz raw URL manzili
-GITHUB_JSON_URL = "https://raw.githubusercontent.com/username/repository/main/grammar_a1.json"  # Linkni o'zingiznikiga almashtiring
+GITHUB_JSON_URL = "https://raw.githubusercontent.com/axiy-dev/axiy_deutsch_bot/main/grammar_a1.json"  # O'zingizning aniq raw URL havolangizni qo'ying
 
 USERS_FILE = "users.json"
 
@@ -74,12 +74,27 @@ def get_tests_data():
         logger.error(f"JSON yuklashda xatolik: {e}")
     return {}
 
+# --- SAVOL YUBORISH FUNKSIYASI ---
+async def send_question(query, context: ContextTypes.DEFAULT_TYPE):
+    current_test = context.user_data.get("current_test", [])
+    current_index = context.user_data.get("current_index", 0)
+
+    if current_index < len(current_test):
+        question_data = current_test[current_index]
+        question_text = f"❓ **{current_index + 1}-savol:** {question_data['question']}"
+        
+        keyboard = []
+        for idx, option in enumerate(question_data["options"]):
+            keyboard.append([InlineKeyboardButton(option, callback_data=f"ans_{idx}")])
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(question_text, reply_markup=reply_markup, parse_mode="Markdown")
+
 # --- COMMAND HANDLERS ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     save_user_data(user)
     
-    # Adminga bildirishnoma yuborish
     if user.id != ADMIN_ID:
         notify_text = (
             f"🔔 **Yangi foydalanuvchi botga kirdi!**\n\n"
@@ -155,7 +170,6 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         increment_user_tests(user.id)
         
-        # Adminga foydalanuvchi test boshlagani haqida habar
         if user.id != ADMIN_ID:
             try:
                 await context.bot.send_message(
@@ -166,13 +180,12 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 pass
 
-        # Test jarayonini saqlash
         context.user_data["current_test"] = tests_data[test_key]
         context.user_data["current_index"] = 0
         context.user_data["score"] = 0
         context.user_data["test_key"] = test_key
 
-        await send_question(query)
+        await send_question(query, context)
 
     elif query.data.startswith("ans_"):
         selected_option = int(query.data.split("_")[1])
@@ -185,7 +198,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             context.user_data["current_index"] += 1
             if context.user_data["current_index"] < len(current_test):
-                await send_question(query)
+                await send_question(query, context)
             else:
                 score = context.user_data["score"]
                 total = len(current_test)
@@ -197,7 +210,6 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode="Markdown"
                 )
                 
-                # Adminga natijani yuborish
                 if user.id != ADMIN_ID:
                     try:
                         await context.bot.send_message(
@@ -240,25 +252,12 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = "Hozircha hech qanday foydalanuvchi yo'q."
         else:
             text = "👥 **Foydalanuvchilar ro'yxati:**\n\n"
-            for u_id, u_info in list(users.items())[-15:]:  # Oxirgi 15 ta foydalanuvchini ko'rsatish
+            for u_id, u_info in list(users.items())[-15:]:
                 username = f"@{u_info['username']}" if u_info.get('username') else "Username yo'q"
                 text += f"• **{u_info['first_name']}** ({username}) | ID: `{u_id}` | Testlar: {u_info.get('tests_taken', 0)}\n"
         
         keyboard = [[InlineKeyboardButton("⬅️ Orqaga", callback_data="admin_panel")]]
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
-
-async def send_question(query):
-    current_test = query.message if hasattr(query, 'message') else query
-    user_data = query.from_user if hasattr(query, 'from_user') else None
-    
-    # Context ma'lumotlarini olish
-    test_items = query.data if hasattr(query, 'data') else None
-    
-    # Note: query ob'ekti orqali javoblarni yuborish
-    ctx_test = query.message
-    
-    # Oddiy ko'rinishda savolni shakllantirish:
-    # (Bu yerda o'zingizning savol berish kodingiz ishlaydi)
 
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
