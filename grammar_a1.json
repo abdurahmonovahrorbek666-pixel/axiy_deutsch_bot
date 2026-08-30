@@ -300,7 +300,29 @@
     "test_12": [
       {"question": "___ kommt dieser Briefträger? — Aus Deutschland.", "options": ["Woher", "Wohin", "Wo", "Wie"], "correct": 0},
       {"question": "Er will einen neuen Mantel ___.", "options": ["kaufen", "kauft", "kaufe", "kaufst"], "correct": 0},
-      {"question": "Wir essen jeden Morgen ___ Brot.", "options": ["ein", "eine", "einen", "eines"], "correct": 0}
+      {"question": "Wir essen jeden Morgen ___ Brot.", "options": ["ein", "eine", "einen", "eines"], "correct": 0},
+      {"question": "Das Buch ist sehr ___.", "options": ["interessant", "interessante", "interessanten", "interessanter"], "correct": 0},
+      {"question": "Hast du deine Hausaufgaben ___?", "options": ["gemacht", "macht", "machen", "machte"], "correct": 0},
+      {"question": "___ schläfst du so spät? — Weil ich müde bin.", "options": ["Warum", "Wie", "Wo", "Was"], "correct": 0},
+      {"question": "Ich gehe heute ___ Supermarkt.", "options": ["in den", "im", "in die", "ins"], "correct": 0},
+      {"question": "Sie hat eine neue Tasche ___.", "options": ["gekauft", "kaufen", "kauft", "kaufte"], "correct": 0},
+      {"question": "Kommst du morgen ___ mir?", "options": ["zu", "nach", "in", "aus"], "correct": 0},
+      {"question": "Das ist ___ Vater.", "options": ["mein", "meine", "meinen", "meines"], "correct": 0},
+      {"question": "___ viel kostet die Hose?", "options": ["Wie", "Was", "Wo", "Wer"], "correct": 0},
+      {"question": "Wir haben den Film bereits ___.", "options": ["gesehen", "sehen", "sieht", "sah"], "correct": 0},
+      {"question": "Er darf heute nicht ___.", "options": ["kommen", "kommt", "kam", "gekommen"], "correct": 0},
+      {"question": "Sie schenkt ___ Kind ein Buch.", "options": ["dem", "der", "das", "den"], "correct": 0},
+      {"question": "___ du gut schwimmen?", "options": ["Kannst", "Können", "Kann", "Könnt"], "correct": 0},
+      {"question": "Das Auto steht ___ der Straße.", "options": ["auf", "an", "in", "nach"], "correct": 0},
+      {"question": "Ich habe gestern meine Tante ___.", "options": ["besucht", "besuchen", "besuchtet", "besuchte"], "correct": 0},
+      {"question": "Wir fahren im Sommer ___ Deutschland.", "options": ["nach", "in", "zu", "aus"], "correct": 0},
+      {"question": "___ ist der Weg zum Bahnhof?", "options": ["Wie", "Was", "Wo", "Wer"], "correct": 0},
+      {"question": "Er hat seinen Schlüssel ___.", "options": ["gesucht", "sucht", "suchen", "suchte"], "correct": 0},
+      {"question": "Ist das ___ Apfel?", "options": ["ein", "eine", "einen", "eines"], "correct": 0},
+      {"question": "Ich gebe ___ Frau Blumen.", "options": ["der", "die", "das", "den"], "correct": 0},
+      {"question": "Sie möchte morgen früh ___.", "options": ["aufstehen", "steht auf", "stand auf", "aufgestanden"], "correct": 0},
+      {"question": "Wir sind gestern spät ___.", "options": ["angekommen", "ankommen", "kommt an", "kam an"], "correct": 0},
+      {"question": "___ hat das Fenster geöffnet?", "options": ["Wer", "Was", "Wie", "Wo"], "correct": 0}
     ],
     "test_13": [
       {"question": "___ gehst du heute Abend? — Ins Theater.", "options": ["Wohin", "Wo", "Woher", "Wie"], "correct": 0},
@@ -518,3 +540,5 @@
       {"question": "Sie wohnen ___ einem großen Haus.", "options": ["in", "an", "auf", "aus"], "correct": 0},
       {"question": "___ möchtest du heute trinken?", "options": ["Was", "Wie", "Wo", "Wer"], "correct": 0}
     ]
+  }
+}
