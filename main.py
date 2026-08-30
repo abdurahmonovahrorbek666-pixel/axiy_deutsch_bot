@@ -95,12 +95,13 @@ def get_user_data(user_id: int, username: str) -> dict:
 async def handle_ping(request):
     return web.Response(text="Bot is running smoothly!")
 
-# Asosiy menyu
+# Asosiy menyu (Yangilangan)
 def main_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📚 Kunlik Lug'at va Test"), KeyboardButton(text="📊 Natijalarim")],
-            [KeyboardButton(text="📖 Nemis tili Kitoblari (PDF)"), KeyboardButton(text="ℹ️ Bot haqida")]
+            [KeyboardButton(text="📚 Kunlik Lug'at"), KeyboardButton(text="📝 Grammatik testlar")],
+            [KeyboardButton(text="📊 Natijalarim"), KeyboardButton(text="📖 Nemis tili Kitoblari (PDF)")],
+            [KeyboardButton(text="ℹ️ Bot haqida")]
         ],
         resize_keyboard=True
     )
@@ -115,7 +116,7 @@ async def start_cmd(message: types.Message):
     welcome_text = (
         f"Hallo, <b>{message.from_user.first_name}</b>! 👋\n\n"
         f"<b>Deutsch mit Ahrorbek</b> botiga xush kelibsiz!\n"
-        f"Bu bot orqali nemis tili so'z boyligingizni kunlik bosqichma-bosqich va testlar orqali oshirib borishingiz mumkin."
+        f"Bu bot orqali nemis tili so'z boyligingizni oshirishingiz va grammatik testlar orqali bilimlaringizni mustahkamlab borishingiz mumkin."
     )
     await message.answer(welcome_text, parse_mode="HTML", reply_markup=main_keyboard())
 
@@ -169,9 +170,9 @@ async def about_bot(message: types.Message):
 async def pdf_books(message: types.Message):
     await message.answer("📚 Tez orada ushbu bo'limga saralangan nemis tili kitoblari joylanadi!")
 
-# Darajalar menyusi
-@dp.message(F.text == "📚 Kunlik Lug'at va Test")
-async def show_levels(message: types.Message):
+# 1. KUNLIK LUG'AT BO'LIMI
+@dp.message(F.text == "📚 Kunlik Lug'at")
+async def show_vocab_levels(message: types.Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🟢 A1 Daraja (Anfänger)", callback_data="showdays_a1_1")],
@@ -180,9 +181,29 @@ async def show_levels(message: types.Message):
             [InlineKeyboardButton(text="🔴 B2 Daraja (Selbstständig)", callback_data="showdays_b2_1")]
         ]
     )
-    await message.answer("🎯 O'zingizga mos bo'lgan til darajasini tanlang:", reply_markup=kb)
+    await message.answer("📚 <b>Kunlik Lug'at</b> bo'limi. O'zingizga mos til darajasini tanlang:", parse_mode="HTML", reply_markup=kb)
 
-# Kunlar menyusi (Sahifalash va barcha kunlarni ko'rsatish bilan)
+# 2. GRAMMATIK TESTLAR BO'LIMI (YANGI)
+@dp.message(F.text == "📝 Grammatik testlar")
+async def show_grammar_levels(message: types.Message):
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🟢 A1 Grammatika Testlari", callback_data="grammartest_a1")],
+            [InlineKeyboardButton(text="🟡 A2 Grammatika Testlari", callback_data="grammartest_a2")],
+            [InlineKeyboardButton(text="🟠 B1 Grammatika Testlari", callback_data="grammartest_b1")],
+            [InlineKeyboardButton(text="🔴 B2 Grammatika Testlari", callback_data="grammartest_b2")]
+        ]
+    )
+    await message.answer("📝 <b>Grammatik testlar</b> bo'limi. Bilimingizni sinash uchun darajani tanlang:", parse_mode="HTML", reply_markup=kb)
+
+# Grammatika testlari handler
+@dp.callback_query(F.data.startswith("grammartest_"))
+async def grammar_test_handler(callback: CallbackQuery):
+    await callback.answer()
+    level = callback.data.split("_")[1].upper()
+    await callback.message.answer(f"🧪 <b>{level} darajadagi grammatik testlar</b> tez orada ishga tushiriladi va bazaga qo'shiladi!", parse_mode="HTML")
+
+# Kunlar menyusi (Lug'at uchun)
 @dp.callback_query(F.data.startswith("showdays_"))
 async def show_days(callback: CallbackQuery):
     await callback.answer()
@@ -196,7 +217,6 @@ async def show_days(callback: CallbackQuery):
     unlocked_day = user.get(level, 1)
     level_days = words_data.get(level, {}).get("days", {})
     
-    # JSON-dagi kunlar soni yoki kamida 30 kun ko'rinishi uchun
     json_max_day = 0
     for day_k in level_days.keys():
         if day_k.startswith("day_"):
@@ -207,7 +227,7 @@ async def show_days(callback: CallbackQuery):
             except ValueError:
                 pass
                 
-    total_days = max(json_max_day, 30)  # Eng kamida 30 ta kun menyusini shakllantiradi
+    total_days = max(json_max_day, 30)
     
     per_page = 10
     start_day = (page - 1) * per_page + 1
@@ -234,7 +254,6 @@ async def show_days(callback: CallbackQuery):
     if row:
         buttons.append(row)
         
-    # Sahifalash (Pagination) tugmalari
     nav_buttons = []
     if page > 1:
         nav_buttons.append(InlineKeyboardButton(text="⬅️ Avvalgisi", callback_data=f"showdays_{level}_{page - 1}"))
@@ -249,7 +268,7 @@ async def show_days(callback: CallbackQuery):
     
     title = words_data.get(level, {}).get("title", level.upper())
     await callback.message.edit_text(
-        f"<b>{title}</b> (Sahifa {page})\n\nDavom etish uchun ochiq kunni tanlang:",
+        f"<b>{title} Lug'atlari</b> (Sahifa {page})\n\nDavom etish uchun ochiq kunni tanlang:",
         parse_mode="HTML",
         reply_markup=kb
     )
@@ -280,9 +299,9 @@ async def view_day_words(callback: CallbackQuery):
     await callback.answer()
     
     parts = callback.data.split("_")
-    level = parts[1]                     # masalan: 'a1'
-    day_key = f"{parts[2]}_{parts[3]}"   # masalan: 'day_1'
-    day_num = parts[3]                   # masalan: '1'
+    level = parts[1]
+    day_key = f"{parts[2]}_{parts[3]}"
+    day_num = parts[3]
     
     questions = words_data.get(level, {}).get("days", {}).get(day_key, [])
     
@@ -322,7 +341,7 @@ async def view_day_words(callback: CallbackQuery):
     start_quiz_kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(
-                text=f"🚀 {day_num}-kun testini boshlash ({len(questions)} savol)", 
+                text=f"🚀 {day_num}-kun lug'at testini boshlash ({len(questions)} savol)", 
                 callback_data=f"startquiz_{level}_{day_key}_0_0"
             )],
             [InlineKeyboardButton(text="⬅️ Kunlar ro'yxatiga qaytish", callback_data=f"showdays_{level}_1")]
