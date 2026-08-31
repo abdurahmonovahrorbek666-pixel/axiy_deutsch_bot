@@ -19,11 +19,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- SOZLAMALAR ---
-BOT_TOKEN = "8912605806:AAGL2tn2d_g7yXFewWrxjkLFMvU80uHEz6k"  # Telegram Bot Tokeningiz
+# Token Render Environment Variable orqali olinadi (Xavfsiz usul)
+BOT_TOKEN = os.getenv("BOT_TOKEN") 
 ADMIN_ID = 7203007188  # Sizning ID raqamingiz
 
 # GitHub'dagi JSON faylingiz raw URL manzili
-GITHUB_JSON_URL = "https://raw.githubusercontent.com/axiy-dev/axiy_deutsch_bot/main/grammar_a1.json"  # O'zingizning aniq raw URL havolangizni qo'ying
+GITHUB_JSON_URL = "https://raw.githubusercontent.com/axiy-dev/axiy_deutsch_bot/main/grammar_a1.json"
 
 USERS_FILE = "users.json"
 
@@ -260,6 +261,10 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
 def main():
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN ortam o'zgaruvchisi topilmadi!")
+        return
+
     application = Application.builder().token(BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
