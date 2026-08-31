@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- SOZLAMALAR ---
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # Telegram Bot Tokeningiz
+BOT_TOKEN = "8912605806:AAGL2tn2d_g7yXFewWrxjkLFMvU80uHEz6k"  # Telegram Bot Tokeningiz
 ADMIN_ID = 7203007188  # Sizning ID raqamingiz
 
 # GitHub'dagi JSON faylingiz raw URL manzili
