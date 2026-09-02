@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from html import escape
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -44,7 +45,19 @@ def get_required_env(name: str) -> str:
 
 
 BOT_TOKEN = get_required_env("BOT_TOKEN")
-GITHUB_JSON_URL = get_required_env("GITHUB_JSON_URL")
+
+# To'g'ri nom: GITHUB_JSON_URL.
+# Eski screenshotdagi GITHUB_JSON_UR typo bo'lsa ham vaqtincha ishlashi uchun
+# fallback qoldirildi, lekin Render'da uni GITHUB_JSON_URL qilib qo'yish tavsiya etiladi.
+GITHUB_JSON_URL = (
+    os.getenv("GITHUB_JSON_URL", "").strip()
+    or os.getenv("GITHUB_JSON_UR", "").strip()
+)
+
+if not GITHUB_JSON_URL:
+    raise RuntimeError(
+        "Majburiy environment variable topilmadi: GITHUB_JSON_URL"
+    )
 
 try:
     ADMIN_ID = int(get_required_env("ADMIN_ID"))
@@ -357,6 +370,12 @@ async def send_question(
 
     question_data = current_test[current_index]
 
+    if not isinstance(question_data, dict):
+        await query.edit_message_text(
+            "⚠️ Savol ma'lumotlari noto'g'ri formatda."
+        )
+        return
+
     question = question_data.get("question", "Savol topilmadi.")
     options = question_data.get("options", [])
 
@@ -368,7 +387,7 @@ async def send_question(
 
     question_text = (
         f"<b>❓ {current_index + 1}-savol:</b>\n\n"
-        f"{question}"
+        f"{escape(str(question))}"
     )
 
     keyboard = []
@@ -377,7 +396,7 @@ async def send_question(
         keyboard.append(
             [
                 InlineKeyboardButton(
-                    str(option),
+                    escape(str(option)),
                     callback_data=f"ans:{index}",
                 )
             ]
@@ -429,7 +448,7 @@ async def start(
 
         notify_text = (
             "🔔 <b>Yangi foydalanuvchi botga kirdi!</b>\n\n"
-            f"👤 <b>Ism:</b> {user.first_name or 'Noma'lum'}\n"
+            f"👤 <b>Ism:</b> {escape(user.first_name or "Noma'lum")}\n"
             f"🆔 <b>ID:</b> <code>{user.id}</code>\n"
             f"🔗 <b>Username:</b> {username}\n"
             f"⏰ <b>Vaqt:</b> "
@@ -440,7 +459,7 @@ async def start(
 
     await update.message.reply_text(
         (
-            f"Hallo, {user.first_name or 'do‘st'}! 🇩🇪\n\n"
+            f"Hallo, {escape(user.first_name or "do‘st")}! 🇩🇪\n\n"
             "German A1 Grammatik botiga xush kelibsiz!\n"
             "Test yechish uchun quyidagi tugmani bosing:"
         ),
@@ -499,7 +518,7 @@ async def button_click(
     if data == "main_menu":
         await query.edit_message_text(
             (
-                f"Hallo, {user.first_name or 'do‘st'}! 🇩🇪\n\n"
+                f"Hallo, {escape(user.first_name or "do‘st")}! 🇩🇪\n\n"
                 "German A1 Grammatik botiga xush kelibsiz!\n"
                 "Kerakli bo'limni tanlang:"
             ),
@@ -591,7 +610,7 @@ async def button_click(
             await notify_admin(
                 context,
                 (
-                    f"✍️ <b>{user.first_name or 'Noma'lum'}</b> "
+                    f"✍️ <b>{escape(user.first_name or "Noma'lum")}</b> "
                     f"(<code>{user.id}</code>) "
                     f"<b>{test_key}</b> testini boshladi."
                 ),
@@ -712,7 +731,7 @@ async def button_click(
             await notify_admin(
                 context,
                 (
-                    f"🏁 <b>{user.first_name or 'Noma'lum'}</b> "
+                    f"🏁 <b>{escape(user.first_name or "Noma'lum")}</b> "
                     f"(<code>{user.id}</code>) "
                     f"<b>{test_key}</b> testini tugatdi.\n"
                     f"Natija: <b>{score}/{total}</b> ({percentage}%)"
@@ -801,11 +820,11 @@ async def button_click(
 
             # Oxirgi 15 ta yozuv.
             for user_id, user_info in list(users.items())[-15:]:
-                first_name = user_info.get("first_name") or "Noma'lum"
+                first_name = escape(str(user_info.get("first_name") or "Noma'lum"))
                 username = user_info.get("username")
 
                 username_text = (
-                    f"@{username}"
+                    f"@{escape(str(username))}"
                     if username
                     else "Username yo'q"
                 )
